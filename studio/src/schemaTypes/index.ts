@@ -1,6 +1,9 @@
 import {person} from './documents/person'
 import {page} from './documents/page'
 import {post} from './documents/post'
+import {dailyChore} from './documents/dailyChore'
+import {cognitiveLog} from './documents/cognitiveLog'
+import {kioskSettings} from './documents/kioskSettings'
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -18,6 +21,9 @@ export const schemaTypes = [
   page,
   post,
   person,
+  dailyChore,
+  cognitiveLog,
+  kioskSettings,
   // Objects
   button,
   blockContent,

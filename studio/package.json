@@ -8,12 +8,12 @@
   "license": "UNLICENSED",
   "main": "package.json",
   "scripts": {
-    "build": "sanity build",
-    "deploy": "sanity deploy",
+    "build": "npx sanity@latest build",
+    "deploy": "npx sanity@latest deploy",
     "predev": "npm run sanity:typegen",
-    "dev": "sanity dev",
-    "sanity:typegen": "sanity schema extract --enforce-required-fields --path ../sanity.schema.json && sanity typegen generate",
-    "start": "sanity start",
+    "dev": "npx sanity@latest dev",
+    "sanity:typegen": "npx sanity@latest schema extract --enforce-required-fields --path ../sanity.schema.json && npx sanity@latest typegen generate",
+    "start": "npx sanity@latest start",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

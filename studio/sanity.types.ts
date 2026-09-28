@@ -127,6 +127,69 @@ export type Button = {
   link?: Link
 }
 
+export type KioskSettings = {
+  _id: string
+  _type: 'kioskSettings'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  showChatCompanion?: boolean
+  kioskTheme: 'dark' | 'light' | 'high-contrast'
+  customWelcomeText?: string
+}
+
+export type PersonReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'person'
+}
+
+export type CognitiveLog = {
+  _id: string
+  _type: 'cognitiveLog'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  quizDate: string
+  gameType: 'Face-Name Match' | 'Trivia Anchor' | 'Music & Memory' | 'Pattern Recall'
+  score: {
+    correctAnswers: number
+    totalQuestions: number
+  }
+  accuracyRate?: number
+  patientResponseState: 'Calm/Engaged' | 'Frustrated/Anxious' | 'Distracted'
+  caregiverNotes?: string
+}
+
+export type DailyChore = {
+  _id: string
+  _type: 'dailyChore'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  title: string
+  patient: PersonReference
+  scheduledTime: string
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'bedtime' | 'as_needed'
+  instructions?: string
+  safetyParameters?: {
+    requiresSupervision?: boolean
+    assistanceLevel?: 'independent' | 'verbal_cue' | 'standby' | 'full_assistance'
+    priority?: 'routine' | 'important' | 'critical'
+    safetyNotes?: string
+  }
+  completions?: Array<{
+    completedAt: string
+    status: 'completed' | 'partially_completed' | 'declined' | 'missed'
+    recordedBy?: PersonReference
+    notes?: string
+    _type: 'completionRecord'
+    _key: string
+  }>
+}
+
 export type Settings = {
   _id: string
   _type: 'settings'
@@ -203,13 +266,6 @@ export type Page = {
   >
 }
 
-export type PersonReference = {
-  _ref: string
-  _type: 'reference'
-  _weak?: boolean
-  [internalGroqTypeReferenceTo]?: 'person'
-}
-
 export type Post = {
   _id: string
   _type: 'post'
@@ -238,6 +294,8 @@ export type Person = {
   _createdAt: string
   _updatedAt: string
   _rev: string
+  isPatient?: boolean
+  slug?: Slug
   firstName: string
   lastName: string
   picture: {
@@ -248,6 +306,16 @@ export type Person = {
     alt?: string
     _type: 'image'
   }
+  relationship?: string
+  patient?: PersonReference
+  phoneNumber?: string
+  coreMemories?: Array<{
+    title: string
+    storyText: string
+    year?: string
+    _type: 'memory'
+    _key: string
+  }>
 }
 
 export type Slug = {
@@ -500,11 +568,14 @@ export type AllSanitySchemaTypes =
   | BlockContentTextOnly
   | BlockContent
   | Button
+  | KioskSettings
+  | PersonReference
+  | CognitiveLog
+  | DailyChore
   | Settings
   | SanityImageCrop
   | SanityImageHotspot
   | Page
-  | PersonReference
   | Post
   | Person
   | Slug

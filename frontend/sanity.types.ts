@@ -127,6 +127,69 @@ export type Button = {
   link?: Link
 }
 
+export type KioskSettings = {
+  _id: string
+  _type: 'kioskSettings'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  showChatCompanion?: boolean
+  kioskTheme: 'dark' | 'light' | 'high-contrast'
+  customWelcomeText?: string
+}
+
+export type PersonReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'person'
+}
+
+export type CognitiveLog = {
+  _id: string
+  _type: 'cognitiveLog'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  quizDate: string
+  gameType: 'Face-Name Match' | 'Trivia Anchor' | 'Music & Memory' | 'Pattern Recall'
+  score: {
+    correctAnswers: number
+    totalQuestions: number
+  }
+  accuracyRate?: number
+  patientResponseState: 'Calm/Engaged' | 'Frustrated/Anxious' | 'Distracted'
+  caregiverNotes?: string
+}
+
+export type DailyChore = {
+  _id: string
+  _type: 'dailyChore'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  title: string
+  patient: PersonReference
+  scheduledTime: string
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'bedtime' | 'as_needed'
+  instructions?: string
+  safetyParameters?: {
+    requiresSupervision?: boolean
+    assistanceLevel?: 'independent' | 'verbal_cue' | 'standby' | 'full_assistance'
+    priority?: 'routine' | 'important' | 'critical'
+    safetyNotes?: string
+  }
+  completions?: Array<{
+    completedAt: string
+    status: 'completed' | 'partially_completed' | 'declined' | 'missed'
+    recordedBy?: PersonReference
+    notes?: string
+    _type: 'completionRecord'
+    _key: string
+  }>
+}
+
 export type Settings = {
   _id: string
   _type: 'settings'
@@ -203,13 +266,6 @@ export type Page = {
   >
 }
 
-export type PersonReference = {
-  _ref: string
-  _type: 'reference'
-  _weak?: boolean
-  [internalGroqTypeReferenceTo]?: 'person'
-}
-
 export type Post = {
   _id: string
   _type: 'post'
@@ -238,6 +294,8 @@ export type Person = {
   _createdAt: string
   _updatedAt: string
   _rev: string
+  isPatient?: boolean
+  slug?: Slug
   firstName: string
   lastName: string
   picture: {
@@ -248,6 +306,16 @@ export type Person = {
     alt?: string
     _type: 'image'
   }
+  relationship?: string
+  patient?: PersonReference
+  phoneNumber?: string
+  coreMemories?: Array<{
+    title: string
+    storyText: string
+    year?: string
+    _type: 'memory'
+    _key: string
+  }>
 }
 
 export type Slug = {
@@ -500,11 +568,14 @@ export type AllSanitySchemaTypes =
   | BlockContentTextOnly
   | BlockContent
   | Button
+  | KioskSettings
+  | PersonReference
+  | CognitiveLog
+  | DailyChore
   | Settings
   | SanityImageCrop
   | SanityImageHotspot
   | Page
-  | PersonReference
   | Post
   | Person
   | Slug
@@ -571,6 +642,15 @@ export type SettingsQueryResult = {
     metadataBase?: string
     _type: 'image'
   }
+} | null
+
+// Source: sanity/lib/queries.ts
+// Variable: kioskSettingsQuery
+// Query: *[_type == "kioskSettings"][0] {    showChatCompanion,    kioskTheme,    customWelcomeText,  }
+export type KioskSettingsQueryResult = {
+  showChatCompanion: boolean | null
+  kioskTheme: 'dark' | 'high-contrast' | 'light'
+  customWelcomeText: string | null
 } | null
 
 // Source: sanity/lib/queries.ts
@@ -813,11 +893,237 @@ export type PagesSlugsResult = Array<{
   slug: string
 }>
 
+// Source: sanity/lib/queries.ts
+// Variable: dailyChoresQuery
+// Query: *[_type == "dailyChore"] | order(scheduledTime asc) {    _id,    _type,    title,    scheduledTime,    timeOfDay,    instructions,    safetyParameters {      requiresSupervision,      assistanceLevel,      priority,      safetyNotes    },    completions[] {      completedAt,      status,      notes,      _key    },    patient-> {      _id,      firstName,      lastName    }  }
+export type DailyChoresQueryResult = Array<{
+  _id: string
+  _type: 'dailyChore'
+  title: string
+  scheduledTime: string
+  timeOfDay: 'afternoon' | 'as_needed' | 'bedtime' | 'evening' | 'morning' | null
+  instructions: string | null
+  safetyParameters: {
+    requiresSupervision: boolean | null
+    assistanceLevel: 'full_assistance' | 'independent' | 'standby' | 'verbal_cue' | null
+    priority: 'critical' | 'important' | 'routine' | null
+    safetyNotes: string | null
+  } | null
+  completions: Array<{
+    completedAt: string
+    status: 'completed' | 'declined' | 'missed' | 'partially_completed'
+    notes: string | null
+    _key: string
+  }> | null
+  patient: {
+    _id: string
+    firstName: string
+    lastName: string
+  }
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: allPersonsQuery
+// Query: *[_type == "person"] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    phoneNumber,    isPatient,    "slug": slug.current,    coreMemories  }
+export type AllPersonsQueryResult = Array<{
+  _id: string
+  _type: 'person'
+  firstName: string
+  lastName: string
+  picture: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  relationship: string | null
+  phoneNumber: string | null
+  isPatient: boolean | null
+  slug: string | null
+  coreMemories: Array<{
+    title: string
+    storyText: string
+    year?: string
+    _type: 'memory'
+    _key: string
+  }> | null
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: allPatientsQuery
+// Query: *[_type == "person" && (isPatient == true || (!defined(*[_type == "person" && isPatient == true][0]) && count(*[_type == "dailyChore" && patient._ref == ^._id]) > 0))] | order(firstName asc) {    _id,    _type,    firstName,    lastName,    picture,    "slug": slug.current,    relationship,    isPatient,    "choreCount": count(*[_type == "dailyChore" && patient._ref == ^._id]),    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {      _id,      _type,      firstName,      lastName,      picture,      relationship,      "relationshipToPatient": coalesce(relationship, relationshipToPatient),      phoneNumber    }  }
+export type AllPatientsQueryResult = Array<{
+  _id: string
+  _type: 'person'
+  firstName: string
+  lastName: string
+  picture: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  slug: string | null
+  relationship: string | null
+  isPatient: boolean | null
+  choreCount: number
+  caregivers: Array<{
+    _id: string
+    _type: 'person'
+    firstName: string
+    lastName: string
+    picture: {
+      asset?: SanityImageAssetReference
+      media?: unknown
+      hotspot?: SanityImageHotspot
+      crop?: SanityImageCrop
+      alt?: string
+      _type: 'image'
+    }
+    relationship: string | null
+    relationshipToPatient: string | null
+    phoneNumber: string | null
+  }>
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: patientByIdOrSlugQuery
+// Query: *[_type == "person" && (    _id == $id ||    slug.current == $id ||    slug.current == "/" + $id ||    slug.current == "/kiosk/" + $id ||    slug.current == "kiosk/" + $id ||    slug.current match $id  )][0] {    _id,    _type,    firstName,    lastName,    picture,    "slug": slug.current,    relationship,    isPatient,    coreMemories,    patient-> {      _id,      firstName,      lastName,      "slug": slug.current    },    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {      _id,      _type,      firstName,      lastName,      picture,      relationship,      "relationshipToPatient": coalesce(relationship, relationshipToPatient),      phoneNumber    }  }
+export type PatientByIdOrSlugQueryResult = {
+  _id: string
+  _type: 'person'
+  firstName: string
+  lastName: string
+  picture: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  slug: string | null
+  relationship: string | null
+  isPatient: boolean | null
+  coreMemories: Array<{
+    title: string
+    storyText: string
+    year?: string
+    _type: 'memory'
+    _key: string
+  }> | null
+  patient: {
+    _id: string
+    firstName: string
+    lastName: string
+    slug: string | null
+  } | null
+  caregivers: Array<{
+    _id: string
+    _type: 'person'
+    firstName: string
+    lastName: string
+    picture: {
+      asset?: SanityImageAssetReference
+      media?: unknown
+      hotspot?: SanityImageHotspot
+      crop?: SanityImageCrop
+      alt?: string
+      _type: 'image'
+    }
+    relationship: string | null
+    relationshipToPatient: string | null
+    phoneNumber: string | null
+  }>
+} | null
+
+// Source: sanity/lib/queries.ts
+// Variable: connectedCaregiversByPatientQuery
+// Query: *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == $patientId || associatedPatient._ref == $patientId)] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    "relationshipToPatient": coalesce(relationship, relationshipToPatient),    phoneNumber  }
+export type ConnectedCaregiversByPatientQueryResult = Array<{
+  _id: string
+  _type: 'person'
+  firstName: string
+  lastName: string
+  picture: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  relationship: string | null
+  relationshipToPatient: string | null
+  phoneNumber: string | null
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: dailyChoresByPatientQuery
+// Query: *[_type == "dailyChore" && (    patient._ref == $patientId ||    patient->slug.current == $patientId ||    patient->slug.current == "/" + $patientId ||    patient->slug.current == "/kiosk/" + $patientId ||    patient->slug.current == "kiosk/" + $patientId  )] | order(scheduledTime asc) {    _id,    _type,    title,    scheduledTime,    timeOfDay,    instructions,    safetyParameters {      requiresSupervision,      assistanceLevel,      priority,      safetyNotes    },    completions[] {      completedAt,      status,      notes,      _key    },    patient-> {      _id,      firstName,      lastName    }  }
+export type DailyChoresByPatientQueryResult = Array<{
+  _id: string
+  _type: 'dailyChore'
+  title: string
+  scheduledTime: string
+  timeOfDay: 'afternoon' | 'as_needed' | 'bedtime' | 'evening' | 'morning' | null
+  instructions: string | null
+  safetyParameters: {
+    requiresSupervision: boolean | null
+    assistanceLevel: 'full_assistance' | 'independent' | 'standby' | 'verbal_cue' | null
+    priority: 'critical' | 'important' | 'routine' | null
+    safetyNotes: string | null
+  } | null
+  completions: Array<{
+    completedAt: string
+    status: 'completed' | 'declined' | 'missed' | 'partially_completed'
+    notes: string | null
+    _key: string
+  }> | null
+  patient: {
+    _id: string
+    firstName: string
+    lastName: string
+  }
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: familyMembersByPatientQuery
+// Query: *[_type == "person" && _id != $patientId && (patient._ref == $patientId || (!defined(patient) && (!defined(isPatient) || isPatient == false)))] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    phoneNumber,    coreMemories  }
+export type FamilyMembersByPatientQueryResult = Array<{
+  _id: string
+  _type: 'person'
+  firstName: string
+  lastName: string
+  picture: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  relationship: string | null
+  phoneNumber: string | null
+  coreMemories: Array<{
+    title: string
+    storyText: string
+    year?: string
+    _type: 'memory'
+    _key: string
+  }> | null
+}>
+
 // Query TypeMap
 import '@sanity/client'
 declare module '@sanity/client' {
   interface SanityQueries {
     '*[_type == "settings"][0]': SettingsQueryResult
+    '\n  *[_type == "kioskSettings"][0] {\n    showChatCompanion,\n    kioskTheme,\n    customWelcomeText,\n  }\n': KioskSettingsQueryResult
     '\n  *[_type == \'page\' && slug.current == $slug][0]{\n    _id,\n    _type,\n    name,\n    slug,\n    heading,\n    subheading,\n    "pageBuilder": pageBuilder[]{\n      ...,\n      _type == "callToAction" => {\n        ...,\n        button {\n          ...,\n          \n  link {\n      ...,\n      \n  _type == "link" => {\n    "page": page->slug.current,\n    "post": post->slug.current\n  }\n\n      }\n\n        }\n      },\n      _type == "infoSection" => {\n        content[]{\n          ...,\n          markDefs[]{\n            ...,\n            \n  _type == "link" => {\n    "page": page->slug.current,\n    "post": post->slug.current\n  }\n\n          }\n        }\n      },\n    },\n  }\n': GetPageQueryResult
     '\n  *[_type == "page" || _type == "post" && defined(slug.current)] | order(_type asc) {\n    "slug": slug.current,\n    _type,\n    _updatedAt,\n  }\n': SitemapDataResult
     '\n  *[_type == "post" && defined(slug.current)] | order(date desc, _updatedAt desc) {\n    \n  _id,\n  "status": select(_originalId in path("drafts.**") => "draft", "published"),\n  "title": coalesce(title, "Untitled"),\n  "slug": slug.current,\n  excerpt,\n  coverImage,\n  "date": coalesce(date, _updatedAt),\n  "author": author->{firstName, lastName, picture},\n\n  }\n': AllPostsQueryResult
@@ -825,5 +1131,12 @@ declare module '@sanity/client' {
     '\n  *[_type == "post" && slug.current == $slug] [0] {\n    content[]{\n    ...,\n    markDefs[]{\n      ...,\n      \n  _type == "link" => {\n    "page": page->slug.current,\n    "post": post->slug.current\n  }\n\n    }\n  },\n    \n  _id,\n  "status": select(_originalId in path("drafts.**") => "draft", "published"),\n  "title": coalesce(title, "Untitled"),\n  "slug": slug.current,\n  excerpt,\n  coverImage,\n  "date": coalesce(date, _updatedAt),\n  "author": author->{firstName, lastName, picture},\n\n  }\n': PostQueryResult
     '\n  *[_type == "post" && defined(slug.current)]\n  {"slug": slug.current}\n': PostPagesSlugsResult
     '\n  *[_type == "page" && defined(slug.current)]\n  {"slug": slug.current}\n': PagesSlugsResult
+    '\n  *[_type == "dailyChore"] | order(scheduledTime asc) {\n    _id,\n    _type,\n    title,\n    scheduledTime,\n    timeOfDay,\n    instructions,\n    safetyParameters {\n      requiresSupervision,\n      assistanceLevel,\n      priority,\n      safetyNotes\n    },\n    completions[] {\n      completedAt,\n      status,\n      notes,\n      _key\n    },\n    patient-> {\n      _id,\n      firstName,\n      lastName\n    }\n  }\n': DailyChoresQueryResult
+    '\n  *[_type == "person"] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    phoneNumber,\n    isPatient,\n    "slug": slug.current,\n    coreMemories\n  }\n': AllPersonsQueryResult
+    '\n  *[_type == "person" && (isPatient == true || (!defined(*[_type == "person" && isPatient == true][0]) && count(*[_type == "dailyChore" && patient._ref == ^._id]) > 0))] | order(firstName asc) {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    "slug": slug.current,\n    relationship,\n    isPatient,\n    "choreCount": count(*[_type == "dailyChore" && patient._ref == ^._id]),\n    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {\n      _id,\n      _type,\n      firstName,\n      lastName,\n      picture,\n      relationship,\n      "relationshipToPatient": coalesce(relationship, relationshipToPatient),\n      phoneNumber\n    }\n  }\n': AllPatientsQueryResult
+    '\n  *[_type == "person" && (\n    _id == $id ||\n    slug.current == $id ||\n    slug.current == "/" + $id ||\n    slug.current == "/kiosk/" + $id ||\n    slug.current == "kiosk/" + $id ||\n    slug.current match $id\n  )][0] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    "slug": slug.current,\n    relationship,\n    isPatient,\n    coreMemories,\n    patient-> {\n      _id,\n      firstName,\n      lastName,\n      "slug": slug.current\n    },\n    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {\n      _id,\n      _type,\n      firstName,\n      lastName,\n      picture,\n      relationship,\n      "relationshipToPatient": coalesce(relationship, relationshipToPatient),\n      phoneNumber\n    }\n  }\n': PatientByIdOrSlugQueryResult
+    '\n  *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == $patientId || associatedPatient._ref == $patientId)] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    "relationshipToPatient": coalesce(relationship, relationshipToPatient),\n    phoneNumber\n  }\n': ConnectedCaregiversByPatientQueryResult
+    '\n  *[_type == "dailyChore" && (\n    patient._ref == $patientId ||\n    patient->slug.current == $patientId ||\n    patient->slug.current == "/" + $patientId ||\n    patient->slug.current == "/kiosk/" + $patientId ||\n    patient->slug.current == "kiosk/" + $patientId\n  )] | order(scheduledTime asc) {\n    _id,\n    _type,\n    title,\n    scheduledTime,\n    timeOfDay,\n    instructions,\n    safetyParameters {\n      requiresSupervision,\n      assistanceLevel,\n      priority,\n      safetyNotes\n    },\n    completions[] {\n      completedAt,\n      status,\n      notes,\n      _key\n    },\n    patient-> {\n      _id,\n      firstName,\n      lastName\n    }\n  }\n': DailyChoresByPatientQueryResult
+    '\n  *[_type == "person" && _id != $patientId && (patient._ref == $patientId || (!defined(patient) && (!defined(isPatient) || isPatient == false)))] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    phoneNumber,\n    coreMemories\n  }\n': FamilyMembersByPatientQueryResult
   }
 }

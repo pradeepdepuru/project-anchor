@@ -15,3 +15,12 @@ export type DereferencedLink = {
   post?: string | null
   openInNewTab?: boolean
 }
+
+// Re-export core Project Anchor types for convenience
+export type {
+  Person,
+  PersonReference,
+  DailyChore,
+  CognitiveLog,
+} from '@/sanity.types'
+

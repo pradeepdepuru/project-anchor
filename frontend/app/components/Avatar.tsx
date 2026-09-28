@@ -10,7 +10,7 @@ type Props = {
       hotspot?: {x: number; y: number}
       crop?: {top: number; bottom: number; left: number; right: number}
       alt?: string
-    }
+    } | null
   }
   date?: string
   small?: boolean

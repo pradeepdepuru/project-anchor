@@ -10,9 +10,19 @@ const builder = createImageUrlBuilder({
 })
 
 // Create an image URL builder using the client
-// Export a function that can be used to get image URLs
-function urlForImage(source: SanityImageSource) {
-  return builder.image(source)
+// Export a function that can be used to get image URLs safely
+export function urlForImage(source: any) {
+  if (!source) return null
+  const hasAsset =
+    (typeof source === 'object' && (source.asset?._ref || source.asset?._id || source._ref || source._id || source.url)) ||
+    typeof source === 'string'
+  if (!hasAsset) return null
+
+  try {
+    return builder.image(source)
+  } catch {
+    return null
+  }
 }
 
 export function resolveOpenGraphImage(
@@ -21,9 +31,15 @@ export function resolveOpenGraphImage(
   height = 627,
 ) {
   if (!image) return
-  const url = urlForImage(image)?.width(1200).height(627).fit('crop').url()
-  if (!url) return
-  return {url, alt: (image as {alt?: string})?.alt || '', width, height}
+  const imgBuilder = urlForImage(image)
+  if (!imgBuilder) return
+  try {
+    const url = imgBuilder.width(width).height(height).fit('crop').url()
+    if (!url) return
+    return {url, alt: (image as {alt?: string})?.alt || '', width, height}
+  } catch {
+    return
+  }
 }
 
 // Depending on the type of link, we need to fetch the corresponding page, post, or URL.  Otherwise return null.
