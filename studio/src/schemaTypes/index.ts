@@ -7,6 +7,7 @@ import {kioskSettings} from './documents/kioskSettings'
 import {visit} from './documents/visit'
 import {medicationOrder} from './documents/medicationOrder'
 import {careAlert} from './documents/careAlert'
+import {anchorLog} from './documents/anchorLog'
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -30,6 +31,7 @@ export const schemaTypes = [
   visit,
   medicationOrder,
   careAlert,
+  anchorLog,
   // Objects
   button,
   blockContent,

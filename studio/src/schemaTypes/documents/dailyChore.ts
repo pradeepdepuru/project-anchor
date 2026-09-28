@@ -138,6 +138,7 @@ export const dailyChore = defineType({
                   {title: 'Partially Completed', value: 'partially_completed'},
                   {title: 'Declined / Refused', value: 'declined'},
                   {title: 'Missed', value: 'missed'},
+                  {title: 'Reported by patient, awaiting caregiver', value: 'reported'},
                 ],
               },
               initialValue: 'completed',

@@ -244,6 +244,8 @@ export async function POST(req: Request) {
       safeMode: !connected,
     })
 
+    const lastUserMessage = messages.filter((m) => m.role === 'user').at(-1)
+
     const result = streamText({
       model: openrouter(modelId),
       system,
@@ -251,7 +253,62 @@ export async function POST(req: Request) {
       abortSignal: req.signal,
       tools: { ...(connected?.tools ?? {}), alert_caregiver: makeAlertTool(patient._id) },
       stopWhen: isStepCount(5),
-      onFinish: closeMcp,
+      onFinish: async (event) => {
+        await closeMcp()
+
+        // Isolated logging — must never throw to the stream
+        try {
+          if (!lastUserMessage || !writeClient) return
+
+          // Collect groq_query invocations across all steps
+          const queries: string[] = []
+          const rawIds: string[] = []
+          let alertRaised = false
+
+          for (const step of event.steps ?? []) {
+            for (const call of (step.toolCalls ?? []) as any[]) {
+              if (call.toolName === 'groq_query' && typeof call.args?.query === 'string') {
+                queries.push(call.args.query)
+              }
+              if (call.toolName === 'alert_caregiver') {
+                alertRaised = true
+              }
+            }
+            // Harvest _id strings from groq_query tool results
+            for (const result of (step.toolResults ?? []) as any[]) {
+              if (result.toolName !== 'groq_query') continue
+              const resultData = result.result
+              const items: unknown[] = Array.isArray(resultData)
+                ? resultData
+                : Array.isArray(resultData?.result)
+                  ? resultData.result
+                  : []
+              for (const item of items) {
+                if (item && typeof (item as any)._id === 'string') {
+                  rawIds.push((item as any)._id)
+                }
+              }
+            }
+          }
+
+          // Deduplicate sourceIds, cap at 20
+          const sourceIds = [...new Set(rawIds)].slice(0, 20)
+
+          await writeClient.create({
+            _type: 'anchorLog',
+            patient: { _type: 'reference', _ref: patient._id },
+            askedAt: new Date().toISOString(),
+            question: lastUserMessage.content.slice(0, 500),
+            answer: (event.text ?? '').slice(0, 2000),
+            queries,
+            sourceIds,
+            safeMode: !connected,
+            alertRaised,
+          })
+        } catch (logErr) {
+          console.error('anchorLog write failed (non-fatal):', logErr)
+        }
+      },
       onError: async ({ error }) => {
         console.error('Anchor stream error:', error)
         await closeMcp()
