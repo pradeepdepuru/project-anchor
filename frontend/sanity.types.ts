@@ -127,6 +127,66 @@ export type Button = {
   link?: Link
 }
 
+export type PersonReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'person'
+}
+
+export type CareAlert = {
+  _id: string
+  _type: 'careAlert'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  type: 'medical_emergency' | 'safety_hazard' | 'distress' | 'missed_medication' | 'other'
+  description?: string
+  status: 'open' | 'acknowledged' | 'resolved'
+  raisedAt: string
+  source?: 'anchor' | 'kiosk' | 'caregiver'
+  acknowledgedBy?: PersonReference
+  resolutionNote?: string
+}
+
+export type MedicationOrderReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'medicationOrder'
+}
+
+export type MedicationOrder = {
+  _id: string
+  _type: 'medicationOrder'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  name: string
+  dosage: string
+  steps: Array<string>
+  effectiveFrom: string
+  supersedes?: MedicationOrderReference
+  changeNote?: string
+  prescribedBy?: string
+}
+
+export type Visit = {
+  _id: string
+  _type: 'visit'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  visitor: PersonReference
+  start: string
+  end?: string
+  purpose?: string
+  status: 'scheduled' | 'cancelled'
+}
+
 export type KioskSettings = {
   _id: string
   _type: 'kioskSettings'
@@ -136,13 +196,6 @@ export type KioskSettings = {
   showChatCompanion?: boolean
   kioskTheme: 'dark' | 'light' | 'high-contrast'
   customWelcomeText?: string
-}
-
-export type PersonReference = {
-  _ref: string
-  _type: 'reference'
-  _weak?: boolean
-  [internalGroqTypeReferenceTo]?: 'person'
 }
 
 export type CognitiveLog = {
@@ -568,8 +621,12 @@ export type AllSanitySchemaTypes =
   | BlockContentTextOnly
   | BlockContent
   | Button
-  | KioskSettings
   | PersonReference
+  | CareAlert
+  | MedicationOrderReference
+  | MedicationOrder
+  | Visit
+  | KioskSettings
   | CognitiveLog
   | DailyChore
   | Settings
@@ -953,7 +1010,7 @@ export type AllPersonsQueryResult = Array<{
 
 // Source: sanity/lib/queries.ts
 // Variable: allPatientsQuery
-// Query: *[_type == "person" && (isPatient == true || (!defined(*[_type == "person" && isPatient == true][0]) && count(*[_type == "dailyChore" && patient._ref == ^._id]) > 0))] | order(firstName asc) {    _id,    _type,    firstName,    lastName,    picture,    "slug": slug.current,    relationship,    isPatient,    "choreCount": count(*[_type == "dailyChore" && patient._ref == ^._id]),    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {      _id,      _type,      firstName,      lastName,      picture,      relationship,      "relationshipToPatient": coalesce(relationship, relationshipToPatient),      phoneNumber    }  }
+// Query: *[_type == "person" && isPatient == true] | order(firstName asc) {    _id,    _type,    firstName,    lastName,    picture,    "slug": slug.current,    relationship,    isPatient,    "choreCount": count(*[_type == "dailyChore" && patient._ref == ^._id]),    "caregivers": *[_type == "person" && isPatient != true && patient._ref == ^._id] {      _id,      _type,      firstName,      lastName,      picture,      relationship,      "relationshipToPatient": relationship,      phoneNumber    }  }
 export type AllPatientsQueryResult = Array<{
   _id: string
   _type: 'person'
@@ -969,7 +1026,7 @@ export type AllPatientsQueryResult = Array<{
   }
   slug: string | null
   relationship: string | null
-  isPatient: boolean | null
+  isPatient: true
   choreCount: number
   caregivers: Array<{
     _id: string
@@ -992,7 +1049,7 @@ export type AllPatientsQueryResult = Array<{
 
 // Source: sanity/lib/queries.ts
 // Variable: patientByIdOrSlugQuery
-// Query: *[_type == "person" && (    _id == $id ||    slug.current == $id ||    slug.current == "/" + $id ||    slug.current == "/kiosk/" + $id ||    slug.current == "kiosk/" + $id ||    slug.current match $id  )][0] {    _id,    _type,    firstName,    lastName,    picture,    "slug": slug.current,    relationship,    isPatient,    coreMemories,    patient-> {      _id,      firstName,      lastName,      "slug": slug.current    },    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {      _id,      _type,      firstName,      lastName,      picture,      relationship,      "relationshipToPatient": coalesce(relationship, relationshipToPatient),      phoneNumber    }  }
+// Query: *[_type == "person" && (    _id == $id ||    slug.current == $id ||    slug.current == "/" + $id ||    slug.current == "/kiosk/" + $id ||    slug.current == "kiosk/" + $id  )][0] {    _id,    _type,    firstName,    lastName,    picture,    "slug": slug.current,    relationship,    isPatient,    coreMemories,    patient-> {      _id,      firstName,      lastName,      "slug": slug.current    },    "caregivers": *[_type == "person" && isPatient != true && patient._ref == ^._id] {      _id,      _type,      firstName,      lastName,      picture,      relationship,      "relationshipToPatient": relationship,      phoneNumber    }  }
 export type PatientByIdOrSlugQueryResult = {
   _id: string
   _type: 'person'
@@ -1043,7 +1100,7 @@ export type PatientByIdOrSlugQueryResult = {
 
 // Source: sanity/lib/queries.ts
 // Variable: connectedCaregiversByPatientQuery
-// Query: *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == $patientId || associatedPatient._ref == $patientId)] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    "relationshipToPatient": coalesce(relationship, relationshipToPatient),    phoneNumber  }
+// Query: *[_type == "person" && isPatient != true && patient._ref == $patientId] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    "relationshipToPatient": relationship,    phoneNumber  }
 export type ConnectedCaregiversByPatientQueryResult = Array<{
   _id: string
   _type: 'person'
@@ -1093,7 +1150,7 @@ export type DailyChoresByPatientQueryResult = Array<{
 
 // Source: sanity/lib/queries.ts
 // Variable: familyMembersByPatientQuery
-// Query: *[_type == "person" && _id != $patientId && (patient._ref == $patientId || (!defined(patient) && (!defined(isPatient) || isPatient == false)))] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    phoneNumber,    coreMemories  }
+// Query: *[_type == "person" && _id != $patientId && patient._ref == $patientId] {    _id,    _type,    firstName,    lastName,    picture,    relationship,    phoneNumber,    coreMemories  }
 export type FamilyMembersByPatientQueryResult = Array<{
   _id: string
   _type: 'person'
@@ -1118,6 +1175,68 @@ export type FamilyMembersByPatientQueryResult = Array<{
   }> | null
 }>
 
+// Source: sanity/lib/queries.ts
+// Variable: visitsByPatientQuery
+// Query: *[_type == "visit" && patient._ref == $patientId && status != "cancelled"    && dateTime(start) >= dateTime($dayStart) && dateTime(start) < dateTime($dayEnd)]    | order(start asc) {    _id,    start,    end,    purpose,    visitor-> { _id, firstName, lastName, relationship, picture, "memories": coreMemories[0...2] }  }
+export type VisitsByPatientQueryResult = Array<{
+  _id: string
+  start: string
+  end: string | null
+  purpose: string | null
+  visitor: {
+    _id: string
+    firstName: string
+    lastName: string
+    relationship: string | null
+    picture: {
+      asset?: SanityImageAssetReference
+      media?: unknown
+      hotspot?: SanityImageHotspot
+      crop?: SanityImageCrop
+      alt?: string
+      _type: 'image'
+    }
+    memories: Array<{
+      title: string
+      storyText: string
+      year?: string
+      _type: 'memory'
+      _key: string
+    }> | null
+  }
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: currentMedicationOrdersQuery
+// Query: *[_type == "medicationOrder" && patient._ref == $patientId    && dateTime(effectiveFrom) <= dateTime(now())    && count(*[_type == "medicationOrder" && supersedes._ref == ^._id && dateTime(effectiveFrom) <= dateTime(now())]) == 0] {    _id,    name,    dosage,    steps,    effectiveFrom,    changeNote,    "replaces": supersedes-> { name, effectiveFrom }  }
+export type CurrentMedicationOrdersQueryResult = Array<{
+  _id: string
+  name: string
+  dosage: string
+  steps: Array<string>
+  effectiveFrom: string
+  changeNote: string | null
+  replaces: {
+    name: string
+    effectiveFrom: string
+  } | null
+}>
+
+// Source: sanity/lib/queries.ts
+// Variable: openCareAlertsQuery
+// Query: *[_type == "careAlert" && status == "open"] | order(raisedAt desc) {    _id,    type,    description,    raisedAt,    patient-> { _id, firstName, lastName }  }
+export type OpenCareAlertsQueryResult = Array<{
+  _id: string
+  type: 'distress' | 'medical_emergency' | 'missed_medication' | 'other' | 'safety_hazard'
+  description: string | null
+  raisedAt: string
+  patient: {
+    _id: string
+    firstName: string
+    lastName: string
+  }
+}>
+
 // Query TypeMap
 import '@sanity/client'
 declare module '@sanity/client' {
@@ -1133,10 +1252,13 @@ declare module '@sanity/client' {
     '\n  *[_type == "page" && defined(slug.current)]\n  {"slug": slug.current}\n': PagesSlugsResult
     '\n  *[_type == "dailyChore"] | order(scheduledTime asc) {\n    _id,\n    _type,\n    title,\n    scheduledTime,\n    timeOfDay,\n    instructions,\n    safetyParameters {\n      requiresSupervision,\n      assistanceLevel,\n      priority,\n      safetyNotes\n    },\n    completions[] {\n      completedAt,\n      status,\n      notes,\n      _key\n    },\n    patient-> {\n      _id,\n      firstName,\n      lastName\n    }\n  }\n': DailyChoresQueryResult
     '\n  *[_type == "person"] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    phoneNumber,\n    isPatient,\n    "slug": slug.current,\n    coreMemories\n  }\n': AllPersonsQueryResult
-    '\n  *[_type == "person" && (isPatient == true || (!defined(*[_type == "person" && isPatient == true][0]) && count(*[_type == "dailyChore" && patient._ref == ^._id]) > 0))] | order(firstName asc) {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    "slug": slug.current,\n    relationship,\n    isPatient,\n    "choreCount": count(*[_type == "dailyChore" && patient._ref == ^._id]),\n    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {\n      _id,\n      _type,\n      firstName,\n      lastName,\n      picture,\n      relationship,\n      "relationshipToPatient": coalesce(relationship, relationshipToPatient),\n      phoneNumber\n    }\n  }\n': AllPatientsQueryResult
-    '\n  *[_type == "person" && (\n    _id == $id ||\n    slug.current == $id ||\n    slug.current == "/" + $id ||\n    slug.current == "/kiosk/" + $id ||\n    slug.current == "kiosk/" + $id ||\n    slug.current match $id\n  )][0] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    "slug": slug.current,\n    relationship,\n    isPatient,\n    coreMemories,\n    patient-> {\n      _id,\n      firstName,\n      lastName,\n      "slug": slug.current\n    },\n    "caregivers": *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == ^._id || associatedPatient._ref == ^._id)] {\n      _id,\n      _type,\n      firstName,\n      lastName,\n      picture,\n      relationship,\n      "relationshipToPatient": coalesce(relationship, relationshipToPatient),\n      phoneNumber\n    }\n  }\n': PatientByIdOrSlugQueryResult
-    '\n  *[_type == "person" && (isPatient == false || !defined(isPatient)) && (patient._ref == $patientId || associatedPatient._ref == $patientId)] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    "relationshipToPatient": coalesce(relationship, relationshipToPatient),\n    phoneNumber\n  }\n': ConnectedCaregiversByPatientQueryResult
+    '\n  *[_type == "person" && isPatient == true] | order(firstName asc) {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    "slug": slug.current,\n    relationship,\n    isPatient,\n    "choreCount": count(*[_type == "dailyChore" && patient._ref == ^._id]),\n    "caregivers": *[_type == "person" && isPatient != true && patient._ref == ^._id] {\n      _id,\n      _type,\n      firstName,\n      lastName,\n      picture,\n      relationship,\n      "relationshipToPatient": relationship,\n      phoneNumber\n    }\n  }\n': AllPatientsQueryResult
+    '\n  *[_type == "person" && (\n    _id == $id ||\n    slug.current == $id ||\n    slug.current == "/" + $id ||\n    slug.current == "/kiosk/" + $id ||\n    slug.current == "kiosk/" + $id\n  )][0] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    "slug": slug.current,\n    relationship,\n    isPatient,\n    coreMemories,\n    patient-> {\n      _id,\n      firstName,\n      lastName,\n      "slug": slug.current\n    },\n    "caregivers": *[_type == "person" && isPatient != true && patient._ref == ^._id] {\n      _id,\n      _type,\n      firstName,\n      lastName,\n      picture,\n      relationship,\n      "relationshipToPatient": relationship,\n      phoneNumber\n    }\n  }\n': PatientByIdOrSlugQueryResult
+    '\n  *[_type == "person" && isPatient != true && patient._ref == $patientId] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    "relationshipToPatient": relationship,\n    phoneNumber\n  }\n': ConnectedCaregiversByPatientQueryResult
     '\n  *[_type == "dailyChore" && (\n    patient._ref == $patientId ||\n    patient->slug.current == $patientId ||\n    patient->slug.current == "/" + $patientId ||\n    patient->slug.current == "/kiosk/" + $patientId ||\n    patient->slug.current == "kiosk/" + $patientId\n  )] | order(scheduledTime asc) {\n    _id,\n    _type,\n    title,\n    scheduledTime,\n    timeOfDay,\n    instructions,\n    safetyParameters {\n      requiresSupervision,\n      assistanceLevel,\n      priority,\n      safetyNotes\n    },\n    completions[] {\n      completedAt,\n      status,\n      notes,\n      _key\n    },\n    patient-> {\n      _id,\n      firstName,\n      lastName\n    }\n  }\n': DailyChoresByPatientQueryResult
-    '\n  *[_type == "person" && _id != $patientId && (patient._ref == $patientId || (!defined(patient) && (!defined(isPatient) || isPatient == false)))] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    phoneNumber,\n    coreMemories\n  }\n': FamilyMembersByPatientQueryResult
+    '\n  *[_type == "person" && _id != $patientId && patient._ref == $patientId] {\n    _id,\n    _type,\n    firstName,\n    lastName,\n    picture,\n    relationship,\n    phoneNumber,\n    coreMemories\n  }\n': FamilyMembersByPatientQueryResult
+    '\n  *[_type == "visit" && patient._ref == $patientId && status != "cancelled"\n    && dateTime(start) >= dateTime($dayStart) && dateTime(start) < dateTime($dayEnd)]\n    | order(start asc) {\n    _id,\n    start,\n    end,\n    purpose,\n    visitor-> { _id, firstName, lastName, relationship, picture, "memories": coreMemories[0...2] }\n  }\n': VisitsByPatientQueryResult
+    '\n  *[_type == "medicationOrder" && patient._ref == $patientId\n    && dateTime(effectiveFrom) <= dateTime(now())\n    && count(*[_type == "medicationOrder" && supersedes._ref == ^._id && dateTime(effectiveFrom) <= dateTime(now())]) == 0] {\n    _id,\n    name,\n    dosage,\n    steps,\n    effectiveFrom,\n    changeNote,\n    "replaces": supersedes-> { name, effectiveFrom }\n  }\n': CurrentMedicationOrdersQueryResult
+    '\n  *[_type == "careAlert" && status == "open"] | order(raisedAt desc) {\n    _id,\n    type,\n    description,\n    raisedAt,\n    patient-> { _id, firstName, lastName }\n  }\n': OpenCareAlertsQueryResult
   }
 }

@@ -4,6 +4,9 @@ import {post} from './documents/post'
 import {dailyChore} from './documents/dailyChore'
 import {cognitiveLog} from './documents/cognitiveLog'
 import {kioskSettings} from './documents/kioskSettings'
+import {visit} from './documents/visit'
+import {medicationOrder} from './documents/medicationOrder'
+import {careAlert} from './documents/careAlert'
 import {callToAction} from './objects/callToAction'
 import {infoSection} from './objects/infoSection'
 import {settings} from './singletons/settings'
@@ -24,6 +27,9 @@ export const schemaTypes = [
   dailyChore,
   cognitiveLog,
   kioskSettings,
+  visit,
+  medicationOrder,
+  careAlert,
   // Objects
   button,
   blockContent,

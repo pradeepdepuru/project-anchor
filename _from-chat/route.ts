@@ -70,9 +70,9 @@ function normalizeMessages(raw: unknown): { role: 'user' | 'assistant'; content:
         ? m.content
         : Array.isArray(m.parts)
           ? m.parts
-            .filter((p: any) => p?.type === 'text')
-            .map((p: any) => String(p.text ?? ''))
-            .join('')
+              .filter((p: any) => p?.type === 'text')
+              .map((p: any) => String(p.text ?? ''))
+              .join('')
           : ''
     const trimmed = content.trim().slice(0, MAX_CHARS)
     return trimmed ? [{ role: m.role as 'user' | 'assistant', content: trimmed }] : []
@@ -131,27 +131,24 @@ async function connectContextTools() {
     console.warn('Sanity Context MCP unavailable:', error)
     try {
       await mcp?.close()
-    } catch { }
+    } catch {}
     return null
   }
 }
 
 /** patientId is injected by the server, so the model cannot raise an alert for someone else. */
 function makeAlertTool(patientId: string) {
-  const alertSchema = z.object({
-    type: z.enum(['medical_emergency', 'safety_hazard', 'distress']),
-    description: z.string().max(300).describe('One short, factual sentence about what the patient said.'),
-  });
-
   return tool({
     description:
       'Immediately notify the care team. Use for chest pain or pressure, dizziness, a fall, trouble breathing, leaving the house alone, stove or fire hazards, or intense distress. Never diagnose or treat.',
-    parameters: alertSchema,
-    execute: async (args: z.infer<typeof alertSchema>) => {
-      const { type, description } = args;
+    inputSchema: z.object({
+      type: z.enum(['medical_emergency', 'safety_hazard', 'distress']),
+      description: z.string().max(300).describe('One short, factual sentence about what the patient said.'),
+    }),
+    execute: async ({ type, description }) => {
       if (!writeClient) {
         console.error('SANITY_API_WRITE_TOKEN is not set; cannot create careAlert')
-        return { delivered: false, duplicate: false }
+        return { delivered: false }
       }
       try {
         const since = new Date(Date.now() - 10 * 60 * 1000).toISOString()
@@ -169,15 +166,14 @@ function makeAlertTool(patientId: string) {
           source: 'anchor',
           raisedAt: new Date().toISOString(),
         })
-        return { delivered: true, duplicate: false }
+        return { delivered: true }
       } catch (error) {
         console.error('Failed to create careAlert:', error)
-        return { delivered: false, duplicate: false }
+        return { delivered: false }
       }
     },
-  } as any) // 👈 Added "as any" here to clear the strict framework type issue
+  })
 }
-
 
 export async function POST(req: Request) {
   try {
@@ -230,7 +226,7 @@ export async function POST(req: Request) {
     const closeMcp = async () => {
       try {
         await connected?.mcp.close()
-      } catch { }
+      } catch {}
     }
 
     const system = buildAnchorSystemPrompt({
@@ -256,6 +252,7 @@ export async function POST(req: Request) {
         console.error('Anchor stream error:', error)
         await closeMcp()
       },
+      onAbort: closeMcp, // remove this line if your `ai` version has no onAbort
     })
 
     return result.toTextStreamResponse()
