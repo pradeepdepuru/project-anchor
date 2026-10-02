@@ -343,7 +343,7 @@ export function KioskView({
       className={`fixed inset-0 z-40 flex flex-col overflow-hidden font-sans select-none ${rootTheme}`}
     >
       {/* 1. AMBIENT TOP BAR */}
-      <header className="flex-none border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md px-6 py-5 lg:px-12 flex flex-wrap items-center justify-between gap-4">
+      <header className="flex-none border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md px-6 py-5 lg:px-12 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="inline-block w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -410,11 +410,10 @@ export function KioskView({
         <div className="flex items-center gap-4 sm:gap-6">
           <button
             onClick={() => setIsSparkOpen(!isSparkOpen)}
-            className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl font-bold text-sm sm:text-base transition-all active:scale-95 shadow-md ${
-              isSparkOpen
-                ? 'bg-amber-500 text-zinc-950 shadow-amber-500/20'
-                : 'bg-zinc-900/90 hover:bg-zinc-800 text-amber-300 border border-amber-500/40'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl font-bold text-sm sm:text-base transition-all active:scale-95 shadow-md ${isSparkOpen
+              ? 'bg-amber-500 text-zinc-950 shadow-amber-500/20'
+              : 'bg-zinc-900/90 hover:bg-zinc-800 text-amber-300 border border-amber-500/40'
+              }`}
           >
             <span className="text-xl">✨</span>
             <span>{isSparkOpen ? 'View Routine' : 'Memory Spark'}</span>
@@ -430,10 +429,10 @@ export function KioskView({
             <div className="text-xs sm:text-sm font-medium text-zinc-400 mt-0.5">
               {currentTime
                 ? currentTime.toLocaleDateString([], {
-                    weekday: 'long',
-                    month: 'short',
-                    day: 'numeric',
-                  })
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric',
+                })
                 : 'Today'}
             </div>
           </div>
@@ -444,9 +443,8 @@ export function KioskView({
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 lg:p-8 overflow-hidden">
         {/* LEFT: Chores or Cognitive Spark */}
         <section
-          className={`flex flex-col bg-zinc-900/40 border border-zinc-800/80 rounded-3xl p-6 overflow-hidden ${
-            showChat ? 'lg:col-span-5' : 'lg:col-span-12'
-          }`}
+          className={`flex flex-col bg-zinc-900/40 border border-zinc-800/80 rounded-3xl p-6 overflow-hidden ${showChat ? 'lg:col-span-5' : 'lg:col-span-12'
+            }`}
         >
           {isSparkOpen ? (
             <CognitiveSpark
@@ -497,9 +495,9 @@ export function KioskView({
 
                     const timeDisplay = chore.scheduledTime
                       ? new Date(chore.scheduledTime).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                       : chore.timeOfDay?.toUpperCase() || 'TODAY'
 
                     const requiresSupervision = chore.safetyParameters?.requiresSupervision
@@ -515,19 +513,17 @@ export function KioskView({
                         tabIndex={0}
                         aria-pressed={isCompleted}
                         aria-label={`${chore.title ?? 'Chore'}${isCompleted ? ', completed' : ', not yet completed'}`}
-                        className={`w-full text-left p-5 rounded-2xl border-2 transition-all cursor-pointer select-none flex items-start gap-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${
-                          isCompleted
-                            ? 'bg-emerald-950/20 border-emerald-600/70 text-zinc-300 opacity-90'
-                            : 'bg-zinc-900/90 border-zinc-700/80 hover:border-amber-400/80 text-white shadow-lg'
-                        }`}
+                        className={`w-full text-left p-5 rounded-2xl border-2 transition-all cursor-pointer select-none flex items-start gap-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${isCompleted
+                          ? 'bg-emerald-950/20 border-emerald-600/70 text-zinc-300 opacity-90'
+                          : 'bg-zinc-900/90 border-zinc-700/80 hover:border-amber-400/80 text-white shadow-lg'
+                          }`}
                       >
                         {/* Tactile checkmark */}
                         <div
-                          className={`flex-none w-10 h-10 mt-1 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            isCompleted
-                              ? 'bg-emerald-500 border-emerald-400 text-zinc-950'
-                              : 'border-zinc-500 bg-zinc-800/60'
-                          }`}
+                          className={`flex-none w-10 h-10 mt-1 rounded-full border-2 flex items-center justify-center transition-colors ${isCompleted
+                            ? 'bg-emerald-500 border-emerald-400 text-zinc-950'
+                            : 'border-zinc-500 bg-zinc-800/60'
+                            }`}
                           aria-hidden="true"
                         >
                           {isCompleted ? (
@@ -580,11 +576,10 @@ export function KioskView({
 
                               {priority && priority !== 'routine' && (
                                 <span
-                                  className={`text-sm font-semibold px-2 py-0.5 rounded-full border ${
-                                    priority === 'critical'
-                                      ? 'bg-red-950/60 border-red-700/50 text-red-300'
-                                      : 'bg-amber-950/60 border-amber-700/50 text-amber-300'
-                                  }`}
+                                  className={`text-sm font-semibold px-2 py-0.5 rounded-full border ${priority === 'critical'
+                                    ? 'bg-red-950/60 border-red-700/50 text-red-300'
+                                    : 'bg-amber-950/60 border-amber-700/50 text-amber-300'
+                                    }`}
                                 >
                                   {priority.charAt(0).toUpperCase() + priority.slice(1)}
                                 </span>
@@ -593,9 +588,8 @@ export function KioskView({
                           </div>
 
                           <h3
-                            className={`text-lg sm:text-xl lg:text-2xl font-bold mt-2 leading-snug ${
-                              isCompleted ? 'line-through text-zinc-400' : 'text-zinc-100'
-                            }`}
+                            className={`text-lg sm:text-xl lg:text-2xl font-bold mt-2 leading-snug ${isCompleted ? 'line-through text-zinc-400' : 'text-zinc-100'
+                              }`}
                           >
                             {chore.title}
                           </h3>
@@ -651,11 +645,10 @@ export function KioskView({
                 onClick={handleSpeakerToggle}
                 aria-pressed={isSpeakerActive}
                 title={isSpeakerActive ? 'Speaker on — tap to mute' : 'Speaker off — tap to enable'}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${
-                  isSpeakerActive
-                    ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${isSpeakerActive
+                  ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                  }`}
               >
                 <span className={`text-lg ${isSpeakerActive ? 'animate-pulse' : ''}`}>
                   {isSpeakerActive ? '🔊' : '🔇'}
@@ -679,6 +672,7 @@ export function KioskView({
                   onClick={() => {
                     if (promptText === 'Play a memory quiz') {
                       setIsSparkOpen(true)
+                      return
                     }
                     handleSendPrompt(promptText)
                   }}
@@ -725,11 +719,10 @@ export function KioskView({
                         {isUser ? patientDisplayName || 'You' : 'Anchor'}
                       </span>
                       <div
-                        className={`max-w-[85%] rounded-3xl p-5 text-xl sm:text-2xl leading-relaxed font-medium shadow-md ${
-                          isUser
-                            ? 'bg-amber-600/90 text-white rounded-br-none border border-amber-500'
-                            : 'bg-zinc-800/95 text-zinc-100 rounded-bl-none border border-zinc-700'
-                        }`}
+                        className={`max-w-[85%] rounded-3xl p-5 text-xl sm:text-2xl leading-relaxed font-medium shadow-md ${isUser
+                          ? 'bg-amber-600/90 text-white rounded-br-none border border-amber-500'
+                          : 'bg-zinc-800/95 text-zinc-100 rounded-bl-none border border-zinc-700'
+                          }`}
                       >
                         {text}
                       </div>
@@ -815,19 +808,17 @@ function MicButton({
       aria-pressed={isListening}
       aria-label={isListening ? 'Stop listening' : 'Start voice input'}
       title={isListening ? 'Tap to stop listening' : 'Tap to speak'}
-      className={`relative w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${
-        isListening
-          ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/20'
-          : 'bg-zinc-800 text-amber-300 border border-zinc-700 hover:border-amber-400'
-      }`}
+      className={`relative w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${isListening
+        ? 'bg-amber-500 text-zinc-950 shadow-lg shadow-amber-500/20'
+        : 'bg-zinc-800 text-amber-300 border border-zinc-700 hover:border-amber-400'
+        }`}
     >
       <span className="text-2xl" aria-hidden="true">
         🎙️
       </span>
       <span
-        className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full ${
-          isListening ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-pulse'
-        }`}
+        className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full ${isListening ? 'bg-emerald-400 animate-ping' : 'bg-amber-400 animate-pulse'
+          }`}
         aria-hidden="true"
       />
     </button>

@@ -134,6 +134,22 @@ export type PersonReference = {
   [internalGroqTypeReferenceTo]?: 'person'
 }
 
+export type AnchorLog = {
+  _id: string
+  _type: 'anchorLog'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  askedAt: string
+  question?: string
+  answer?: string
+  queries?: Array<string>
+  sourceIds?: Array<string>
+  safeMode?: boolean
+  alertRaised?: boolean
+}
+
 export type CareAlert = {
   _id: string
   _type: 'careAlert'
@@ -235,7 +251,7 @@ export type DailyChore = {
   }
   completions?: Array<{
     completedAt: string
-    status: 'completed' | 'partially_completed' | 'declined' | 'missed'
+    status: 'completed' | 'partially_completed' | 'declined' | 'missed' | 'reported'
     recordedBy?: PersonReference
     notes?: string
     _type: 'completionRecord'
@@ -622,6 +638,7 @@ export type AllSanitySchemaTypes =
   | BlockContent
   | Button
   | PersonReference
+  | AnchorLog
   | CareAlert
   | MedicationOrderReference
   | MedicationOrder
@@ -968,7 +985,7 @@ export type DailyChoresQueryResult = Array<{
   } | null
   completions: Array<{
     completedAt: string
-    status: 'completed' | 'declined' | 'missed' | 'partially_completed'
+    status: 'completed' | 'declined' | 'missed' | 'partially_completed' | 'reported'
     notes: string | null
     _key: string
   }> | null
@@ -1137,7 +1154,7 @@ export type DailyChoresByPatientQueryResult = Array<{
   } | null
   completions: Array<{
     completedAt: string
-    status: 'completed' | 'declined' | 'missed' | 'partially_completed'
+    status: 'completed' | 'declined' | 'missed' | 'partially_completed' | 'reported'
     notes: string | null
     _key: string
   }> | null

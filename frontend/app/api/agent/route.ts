@@ -139,7 +139,7 @@ async function connectContextTools() {
 /** patientId is injected by the server, so the model cannot raise an alert for someone else. */
 function makeAlertTool(patientId: string) {
   const alertSchema = z.object({
-    type: z.enum(['medical_emergency', 'safety_hazard', 'distress']),
+    alertType: z.enum(['medical_emergency', 'safety_hazard', 'distress']),
     description: z.string().max(300).describe('One short, factual sentence about what the patient said.'),
   });
 
@@ -147,8 +147,16 @@ function makeAlertTool(patientId: string) {
     description:
       'Immediately notify the care team. Use for chest pain or pressure, dizziness, a fall, trouble breathing, leaving the house alone, stove or fire hazards, or intense distress. Never diagnose or treat.',
     parameters: alertSchema,
-    execute: async (args: z.infer<typeof alertSchema>) => {
-      const { type, description } = args;
+    execute: async (args: any) => {
+      console.log('alert_caregiver raw args:', JSON.stringify(args))
+
+      const allowed = ['medical_emergency', 'safety_hazard', 'distress'] as const
+      const alertType = allowed.includes(args?.alertType) ? args.alertType : 'distress'
+      const description =
+        typeof args?.description === 'string' && args.description.trim()
+          ? args.description.slice(0, 300)
+          : 'Patient expressed distress; details not captured.'
+
       if (!writeClient) {
         console.error('SANITY_API_WRITE_TOKEN is not set; cannot create careAlert')
         return { delivered: false, duplicate: false }
@@ -156,14 +164,14 @@ function makeAlertTool(patientId: string) {
       try {
         const since = new Date(Date.now() - 10 * 60 * 1000).toISOString()
         const recent = await writeClient.fetch<number>(
-          `count(*[_type == "careAlert" && patient._ref == $patientId && type == $type && status == "open" && dateTime(raisedAt) > dateTime($since)])`,
-          { patientId, type, since },
+          `count(*[_type == "careAlert" && patient._ref == $patientId && type == $alertType && status == "open" && dateTime(raisedAt) > dateTime($since)])`,
+          { patientId, alertType, since },
         )
         if (recent > 0) return { delivered: true, duplicate: true }
         await writeClient.create({
           _type: 'careAlert',
           patient: { _type: 'reference', _ref: patientId },
-          type,
+          type: alertType,
           description,
           status: 'open',
           source: 'anchor',
@@ -252,7 +260,7 @@ export async function POST(req: Request) {
       messages,
       abortSignal: req.signal,
       tools: { ...(connected?.tools ?? {}), alert_caregiver: makeAlertTool(patient._id) },
-      stopWhen: isStepCount(5),
+      stopWhen: isStepCount(3),
       onFinish: async (event) => {
         await closeMcp()
 

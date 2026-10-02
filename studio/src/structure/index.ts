@@ -1,5 +1,5 @@
-import {BellIcon, CogIcon, CalendarIcon, HeartIcon, UserIcon, UsersIcon} from '@sanity/icons'
-import type {StructureBuilder, StructureResolver} from 'sanity/structure'
+import { BellIcon, CogIcon, CalendarIcon, HeartIcon, UserIcon, UsersIcon } from '@sanity/icons'
+import type { StructureBuilder, StructureResolver } from 'sanity/structure'
 
 /**
  * Structure builder for Project Anchor Studio.
@@ -11,6 +11,10 @@ import type {StructureBuilder, StructureResolver} from 'sanity/structure'
 const HIDDEN_FROM_GENERIC = [
   'kioskSettings',
   'careAlert',
+  'person',
+  'dailyChore',
+  'visit',
+  'medicationOrder',
   'settings',
   'assist.instruction.context',
   // CMS-only types — kept in the schema engine, not surfaced in the nav tree
@@ -68,10 +72,7 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
             .title('Chores by patient')
             .schemaType('dailyChore')
             .filter('_type == "dailyChore"')
-            .defaultOrdering([
-              {field: 'patient._ref', direction: 'asc'},
-              {field: 'scheduledTime', direction: 'asc'},
-            ]),
+            .defaultOrdering([{ field: 'scheduledTime', direction: 'asc' }]),
         ),
 
       // ── Medication orders ─────────────────────────────────────────────
@@ -105,7 +106,7 @@ export const structure: StructureResolver = (S: StructureBuilder) =>
             .title('Open alerts')
             .schemaType('careAlert')
             .filter('_type == "careAlert" && status == "open"')
-            .defaultOrdering([{field: 'raisedAt', direction: 'desc'}]),
+            .defaultOrdering([{ field: 'raisedAt', direction: 'desc' }]),
         ),
 
       S.divider(),

@@ -127,6 +127,82 @@ export type Button = {
   link?: Link
 }
 
+export type PersonReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'person'
+}
+
+export type AnchorLog = {
+  _id: string
+  _type: 'anchorLog'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  askedAt: string
+  question?: string
+  answer?: string
+  queries?: Array<string>
+  sourceIds?: Array<string>
+  safeMode?: boolean
+  alertRaised?: boolean
+}
+
+export type CareAlert = {
+  _id: string
+  _type: 'careAlert'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  type: 'medical_emergency' | 'safety_hazard' | 'distress' | 'missed_medication' | 'other'
+  description?: string
+  status: 'open' | 'acknowledged' | 'resolved'
+  raisedAt: string
+  source?: 'anchor' | 'kiosk' | 'caregiver'
+  acknowledgedBy?: PersonReference
+  resolutionNote?: string
+}
+
+export type MedicationOrderReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'medicationOrder'
+}
+
+export type MedicationOrder = {
+  _id: string
+  _type: 'medicationOrder'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  name: string
+  dosage: string
+  steps: Array<string>
+  effectiveFrom: string
+  supersedes?: MedicationOrderReference
+  changeNote?: string
+  prescribedBy?: string
+}
+
+export type Visit = {
+  _id: string
+  _type: 'visit'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  patient: PersonReference
+  visitor: PersonReference
+  start: string
+  end?: string
+  purpose?: string
+  status: 'scheduled' | 'cancelled'
+}
+
 export type KioskSettings = {
   _id: string
   _type: 'kioskSettings'
@@ -136,13 +212,6 @@ export type KioskSettings = {
   showChatCompanion?: boolean
   kioskTheme: 'dark' | 'light' | 'high-contrast'
   customWelcomeText?: string
-}
-
-export type PersonReference = {
-  _ref: string
-  _type: 'reference'
-  _weak?: boolean
-  [internalGroqTypeReferenceTo]?: 'person'
 }
 
 export type CognitiveLog = {
@@ -182,7 +251,7 @@ export type DailyChore = {
   }
   completions?: Array<{
     completedAt: string
-    status: 'completed' | 'partially_completed' | 'declined' | 'missed'
+    status: 'completed' | 'partially_completed' | 'declined' | 'missed' | 'reported'
     recordedBy?: PersonReference
     notes?: string
     _type: 'completionRecord'
@@ -568,8 +637,13 @@ export type AllSanitySchemaTypes =
   | BlockContentTextOnly
   | BlockContent
   | Button
-  | KioskSettings
   | PersonReference
+  | AnchorLog
+  | CareAlert
+  | MedicationOrderReference
+  | MedicationOrder
+  | Visit
+  | KioskSettings
   | CognitiveLog
   | DailyChore
   | Settings
