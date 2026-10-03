@@ -1,10 +1,11 @@
 import { createMCPClient } from '@ai-sdk/mcp'
 import { createOpenAI } from '@ai-sdk/openai'
-import { isStepCount, streamText, tool } from 'ai'
+import { generateText, isStepCount, streamText, tool } from 'ai'
 import { z } from 'zod'
 import { client } from '@/sanity/lib/client'
 import { token as readToken } from '@/sanity/lib/token'
 import { buildAnchorSystemPrompt, zonedDayBounds } from '@/sanity/lib/agentPrompt'
+import { getWorkflowEngine, alertSubject } from '@/sanity/lib/workflowEngine'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -136,8 +137,10 @@ async function connectContextTools() {
   }
 }
 
+type RaisedAlert = { alertId: string; alertType: string; description: string }
+
 /** patientId is injected by the server, so the model cannot raise an alert for someone else. */
-function makeAlertTool(patientId: string) {
+function makeAlertTool(patientId: string, onRaised?: (a: RaisedAlert) => void) {
   const alertSchema = z.object({
     alertType: z.enum(['medical_emergency', 'safety_hazard', 'distress']),
     description: z.string().max(300).describe('One short, factual sentence about what the patient said.'),
@@ -168,7 +171,7 @@ function makeAlertTool(patientId: string) {
           { patientId, alertType, since },
         )
         if (recent > 0) return { delivered: true, duplicate: true }
-        await writeClient.create({
+        const created = await writeClient.create({
           _type: 'careAlert',
           patient: { _type: 'reference', _ref: patientId },
           type: alertType,
@@ -177,6 +180,7 @@ function makeAlertTool(patientId: string) {
           source: 'anchor',
           raisedAt: new Date().toISOString(),
         })
+        onRaised?.({ alertId: created._id, alertType, description })
         return { delivered: true, duplicate: false }
       } catch (error) {
         console.error('Failed to create careAlert:', error)
@@ -184,6 +188,95 @@ function makeAlertTool(patientId: string) {
       }
     },
   } as any) // 👈 Added "as any" here to clear the strict framework type issue
+}
+
+
+/**
+ * Alert-response workflow: start an instance on the alert, have Anchor draft a caregiver
+ * briefing grounded in the patient's memory anchors, and submit it so the instance moves
+ * to caregiver review. Never throws: the alert and the chat must work even if this fails.
+ */
+async function runAlertWorkflow(opts: {
+  alert: RaisedAlert
+  patientId: string
+  patientName: string
+  messages: { role: 'user' | 'assistant'; content: string }[]
+  modelId?: string
+}) {
+  const { alert, patientId, patientName, messages, modelId } = opts
+  try {
+    const engine = getWorkflowEngine()
+    if (!engine || !writeClient) return
+
+    const { instance } = await engine.startInstance({
+      definition: 'alert-response',
+      initialFields: [{ type: 'subject', name: 'subject', value: alertSubject(alert.alertId) }],
+    })
+    const instanceId = instance._id
+    await writeClient.patch(alert.alertId).set({ workflowInstanceId: instanceId }).commit()
+
+    // Grounding: memory anchors stored on the patient and the people linked to them.
+    const people = await readClient.fetch<
+      { firstName?: string; relationship?: string; memories?: { title?: string; storyText?: string }[] }[]
+    >(
+      `*[_type == "person" && (_id == $id || patient._ref == $id)]{
+        firstName, relationship, "memories": coreMemories[]{ title, storyText }
+      }`,
+      { id: patientId },
+    )
+    const anchors = (people ?? [])
+      .flatMap((p) =>
+        (p.memories ?? []).map(
+          (m) => `- ${p.firstName ?? 'Someone'}${p.relationship ? ' (' + p.relationship + ')' : ''}, "${m.title}": ${m.storyText}`,
+        ),
+      )
+      .slice(0, 12)
+    const transcript = messages
+      .slice(-6)
+      .map((m) => `${m.role === 'user' ? patientName : 'Anchor'}: ${m.content}`)
+      .join('\n')
+
+    let briefing = alert.description
+    let suggestedResponse = 'No memory anchors on file for this situation. Please check in with the patient directly.'
+    if (modelId && process.env.OPENROUTER_API_KEY) {
+      try {
+        const { text } = await generateText({
+          model: openrouter(modelId),
+          system:
+            'You write short briefings for a family caregiver after a care companion raised an alert. ' +
+            'Use ONLY the conversation and memory anchors provided. Never invent facts, never give medical advice or diagnoses. ' +
+            'If no memory anchor fits, say so in suggestedResponse. ' +
+            'Reply with JSON only: {"briefing": string, "suggestedResponse": string}. Each value is at most 3 sentences.',
+          prompt:
+            `Alert type: ${alert.alertType}
+Anchor's note: ${alert.description}
+
+` +
+            `Recent conversation:
+${transcript}
+
+Memory anchors:
+${anchors.join('') || '(none)'}`,
+        })
+        const parsed = JSON.parse(text.replace(/```json| ```/g, '').trim())
+        if (typeof parsed.briefing === 'string' && parsed.briefing.trim()) briefing = parsed.briefing.slice(0, 600)
+        if (typeof parsed.suggestedResponse === 'string' && parsed.suggestedResponse.trim())
+          suggestedResponse = parsed.suggestedResponse.slice(0, 600)
+      } catch (draftErr) {
+        console.warn('Briefing draft failed, using the alert text:', draftErr)
+      }
+    }
+
+    await engine.fireAction({
+      instanceId,
+      activity: 'draft-briefing',
+      action: 'submit-briefing',
+      params: { briefing, suggestedResponse },
+    })
+    await writeClient.patch(alert.alertId).set({ agentBriefing: briefing, suggestedResponse }).commit()
+  } catch (error) {
+    console.error('alert workflow failed (non-fatal):', error)
+  }
 }
 
 
@@ -206,11 +299,11 @@ export async function POST(req: Request) {
       firstName: string
       caregiverName?: string | null
     } | null>(
-      `*[_type == "person" && _id == $id && isPatient == true][0]{
-        _id,
-        firstName,
-        "caregiverName": *[_type == "person" && isPatient != true && patient._ref == ^._id][0].firstName
-      }`,
+      `* [_type == "person" && _id == $id && isPatient == true][0]{
+          _id,
+          firstName,
+          "caregiverName": * [_type == "person" && isPatient != true && patient._ref == ^._id][0].firstName
+        }`,
       { id: patientId },
     )
     if (!patient) {
@@ -253,16 +346,28 @@ export async function POST(req: Request) {
     })
 
     const lastUserMessage = messages.filter((m) => m.role === 'user').at(-1)
+    const raised: { current: RaisedAlert | null } = { current: null }
 
     const result = streamText({
       model: openrouter(modelId),
       system,
       messages,
       abortSignal: req.signal,
-      tools: { ...(connected?.tools ?? {}), alert_caregiver: makeAlertTool(patient._id) },
+      tools: { ...(connected?.tools ?? {}), alert_caregiver: makeAlertTool(patient._id, (a) => { raised.current = a }) },
       stopWhen: isStepCount(3),
       onFinish: async (event) => {
         await closeMcp()
+
+        // Process-as-data: hand a freshly raised alert to the alert-response workflow
+        if (raised.current) {
+          await runAlertWorkflow({
+            alert: raised.current,
+            patientId: patient._id,
+            patientName: patient.firstName,
+            messages,
+            modelId,
+          })
+        }
 
         // Isolated logging — must never throw to the stream
         try {

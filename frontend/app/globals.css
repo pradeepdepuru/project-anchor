@@ -3,6 +3,7 @@
 @plugin "@tailwindcss/typography";
 
 @layer base {
+
   h1,
   h2,
   h3,
@@ -41,6 +42,8 @@
   --color-gray-900: #1b1d27;
   --color-gray-950: #13141b;
 
+  --font-display: var(--font-lora), serif;
+
   --default-transition-duration: 250ms;
 }
 
@@ -50,16 +53,22 @@
 ───────────────────────────────────────────────────────────────────────────── */
 [data-theme='dark'] {
   /* Backgrounds */
-  --bg: #13141b;           /* deep off-black page background               */
-  --surface: #1b1d27;      /* card / panel surface, one step up from bg     */
+  --bg: #13141b;
+  /* deep off-black page background               */
+  --surface: #1b1d27;
+  /* card / panel surface, one step up from bg     */
 
   /* Typography */
-  --text: #eeeef1;         /* primary body copy — soft white, ~13.7:1 on bg */
-  --muted: #727892;        /* secondary / placeholder text                  */
+  --text: #eeeef1;
+  /* primary body copy — soft white, ~13.7:1 on bg */
+  --muted: #727892;
+  /* secondary / placeholder text                  */
 
   /* Brand / interactive */
-  --primary: #0052ff;      /* primary action colour (CTA buttons, links)    */
-  --accent: #cdea19;       /* accent highlight (badges, active states)       */
+  --primary: #0052ff;
+  /* primary action colour (CTA buttons, links)    */
+  --accent: #cdea19;
+  /* accent highlight (badges, active states)       */
 
   /* Structure */
   --border-radius: 0.75rem;
@@ -75,19 +84,78 @@
 ───────────────────────────────────────────────────────────────────────────── */
 [data-theme='high-contrast'] {
   /* Backgrounds */
-  --bg: #000000;           /* true black — maximises contrast baseline      */
-  --surface: #0d0d0d;      /* very dark surface for card elevation cue only */
+  --bg: #000000;
+  /* true black — maximises contrast baseline      */
+  --surface: #0d0d0d;
+  /* very dark surface for card elevation cue only */
 
   /* Typography — white on black = 21:1, far exceeds 7:1 AAA target */
-  --text: #ffffff;          /* body copy                                    */
-  --muted: #cccccc;         /* secondary text — #ccc on #000 ≈ 14.1:1       */
+  --text: #ffffff;
+  /* body copy                                    */
+  --muted: #cccccc;
+  /* secondary text — #ccc on #000 ≈ 14.1:1       */
 
   /* Brand / interactive — checked for ≥ 4.5:1 on black (WCAG AA)
      #4d8fff on #000 ≈ 5.9:1 (AA); use white label inside buttons for AAA  */
-  --primary: #4d8fff;       /* blue shifted lighter for visibility on black */
-  --accent: #e6ff33;        /* yellow lightened — #e6ff33 on #000 ≈ 16.7:1  */
+  --primary: #4d8fff;
+  /* blue shifted lighter for visibility on black */
+  --accent: #e6ff33;
+  /* yellow lightened — #e6ff33 on #000 ≈ 16.7:1  */
 
   /* Structure */
-  --border-radius: 0.5rem;  /* tighter radius for clinical, precise feel    */
-  --border-color: #ffffff;  /* full white borders for maximum edge contrast  */
+  --border-radius: 0.5rem;
+  /* tighter radius for clinical, precise feel    */
+  --border-color: #ffffff;
+  /* full white borders for maximum edge contrast  */
+}
+
+/* Kiosk themes: remap the palette inside the kiosk only */
+[data-kiosk-theme='light'] {
+  color-scheme: light;
+  --color-white: #1c1917;
+  --color-zinc-100: #1c1917;
+  --color-zinc-200: #292524;
+  --color-zinc-300: #44403c;
+  --color-zinc-400: #57534e;
+  --color-zinc-500: #78716c;
+  --color-zinc-600: #a8a29e;
+  --color-zinc-700: #d6d3d1;
+  --color-zinc-800: #e7e5e4;
+  --color-zinc-900: #f5f5f4;
+  --color-amber-100: #78350f;
+  --color-amber-200: #92400e;
+  --color-amber-300: #b45309;
+  --color-emerald-100: #064e3b;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #059669;
+  --color-emerald-950: #d1fae5;
+  --color-red-950: #fee2e2;
+  --color-amber-950: #fef3c7;
+  --color-red-300: #b91c1c;
+}
+
+[data-kiosk-theme='high-contrast'] {
+  --color-white: #ffffff;
+  --color-zinc-300: #fafafa;
+  --color-zinc-400: #e4e4e7;
+  --color-zinc-500: #d4d4d8;
+  --color-zinc-800: #1c1c1e;
+  --color-zinc-900: #0a0a0a;
+  --color-amber-300: #fde047;
+}
+
+.kiosk-hero-scrim {
+  --scrim: var(--color-zinc-950, #09090b);
+  background-image: linear-gradient(to bottom,
+      color-mix(in srgb, var(--scrim) 70%, transparent) 0%,
+      color-mix(in srgb, var(--scrim) 30%, transparent) 40%,
+      var(--scrim) 100%);
+}
+
+[data-kiosk-theme='light'] .kiosk-hero-scrim {
+  --scrim: var(--color-stone-50, #fafaf9);
+}
+
+[data-kiosk-theme='high-contrast'] .kiosk-hero-scrim {
+  --scrim: var(--color-black, #000000);
 }

@@ -1,10 +1,14 @@
 'use client'
 
-import {useState, useMemo, useTransition} from 'react'
+import { useState, useMemo, useTransition } from 'react'
 import Image from 'next/image'
-import type {FamilyMembersByPatientQueryResult} from '@/sanity.types'
-import {urlForImage} from '@/sanity/lib/utils'
-import {logQuizAction} from '@/app/actions/logQuiz'
+import type { FamilyMembersByPatientQueryResult } from '@/sanity.types'
+import { urlForImage } from '@/sanity/lib/utils'
+import { logQuizAction } from '@/app/actions/logQuiz'
+import { Inter, Instrument_Serif } from 'next/font/google'
+
+const display = Instrument_Serif({ subsets: ['latin'], weight: '400', style: ['normal', 'italic'] })
+const sans = Inter({ subsets: ['latin'] })
 
 type FamilyMemberDoc = NonNullable<FamilyMembersByPatientQueryResult>[number]
 
@@ -55,11 +59,11 @@ const FALLBACK_MEMBERS: FamilyMember[] = [
   },
 ]
 
-export function CognitiveSpark({persons, patientId = 'robert', patientName = 'Robert', onClose}: CognitiveSparkProps) {
+export function CognitiveSpark({ persons, patientId = 'robert', patientName = 'Robert', onClose }: CognitiveSparkProps) {
   const [isPending, startTransition] = useTransition()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<{message: string; isMatch: boolean} | null>(null)
+  const [feedback, setFeedback] = useState<{ message: string; isMatch: boolean } | null>(null)
   const [correctCount, setCorrectCount] = useState(0)
   const [isQuizCompleted, setIsQuizCompleted] = useState(false)
   const [hasLoggedToSanity, setHasLoggedToSanity] = useState(false)
@@ -68,7 +72,7 @@ export function CognitiveSpark({persons, patientId = 'robert', patientName = 'Ro
   const familyList: FamilyMember[] = useMemo(() => {
     if (persons && persons.length >= 2) {
       return persons
-        .filter((p): p is FamilyMemberDoc & {firstName: string} => Boolean(p.firstName))
+        .filter((p): p is FamilyMemberDoc & { firstName: string } => Boolean(p.firstName))
         .map((p) => {
           let url = ''
           if (p.picture?.asset?._ref) {
@@ -176,87 +180,91 @@ export function CognitiveSpark({persons, patientId = 'robert', patientName = 'Ro
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-zinc-900/95 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 text-zinc-100 shadow-2xl overflow-y-auto">
-      {/* Header with Title and Close Button */}
-      <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 text-xl font-bold">
-            ✨
-          </div>
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Face-Name Match
-            </h2>
-            <p className="text-sm sm:text-base text-zinc-400">
-              Gentle memory spark • Familiar faces of your family
-            </p>
-          </div>
+    <div className={`${sans.className} flex h-full w-full flex-col overflow-y-auto text-zinc-100`}>
+      {/* Header */}
+      <div className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+        <div>
+          <h2 className={`${display.className} flex items-center gap-3 text-4xl tracking-tight text-white [word-spacing:0.12em]`}>
+            <Icon d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7L19 17z" className="h-7 w-7 text-amber-300" />
+            Face-name match
+          </h2>
+          <p className="mt-1.5 text-base text-zinc-400">A gentle memory game with the faces of your family</p>
         </div>
 
         {onClose && (
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-sm font-semibold transition-colors border border-zinc-700"
+            className="flex-none rounded-full border border-white/15 px-5 py-2.5 text-base font-medium text-zinc-300 transition-colors hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
           >
-            Back to Chores ✕
+            Back to chores
           </button>
         )}
       </div>
 
-      {/* QUIZ COMPLETION SCREEN */}
       {isQuizCompleted ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 sm:p-12 space-y-6">
-          <div className="text-6xl animate-bounce">🌟</div>
-          <h3 className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight">
-            Heartwarming Effort, {patientName}!
+        /* COMPLETION */
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+          <span className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-400/15 text-amber-300">
+            <Icon d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 000-7.8z" className="h-10 w-10" />
+          </span>
+          <h3 className={`${display.className} text-5xl leading-tight text-white [word-spacing:0.12em]`}>
+            Wonderful effort, {patientName}.
           </h3>
-          <p className="text-xl sm:text-2xl text-zinc-200 max-w-lg leading-relaxed">
-            You recognized your family members today. Remembering the people who love you brings calm and comfort to your heart.
+          <p className="max-w-lg text-2xl leading-relaxed text-zinc-300">
+            You spent time with the people who love you. That brings calm and comfort.
           </p>
 
-          <div className="bg-zinc-950/80 border border-zinc-800 rounded-2xl px-8 py-5 flex items-center gap-6">
+          <div className="flex items-center gap-8 rounded-3xl border border-white/10 bg-white/[0.04] px-8 py-5 text-left">
             <div>
-              <div className="text-xs uppercase tracking-wider text-zinc-400">Memory Score</div>
-              <div className="text-3xl font-extrabold text-emerald-400">
-                {correctCount} of {totalRounds} Recognized
+              <div className="text-sm text-zinc-400">Faces recognized</div>
+              <div className={`${display.className} text-4xl text-emerald-400`}>
+                {correctCount} of {totalRounds}
               </div>
             </div>
-            <div className="border-l border-zinc-800 pl-6 text-left">
-              <div className="text-xs uppercase tracking-wider text-zinc-400">Sanity Lake Status</div>
-              <div className="text-sm font-medium text-amber-200">
-                {hasLoggedToSanity ? '✓ Logged to Care Team' : isPending ? 'Saving...' : 'Recorded locally'}
+            <div className="border-l border-white/10 pl-8">
+              <div className="text-sm text-zinc-400">Care team update</div>
+              <div className="text-base font-medium text-amber-200">
+                {hasLoggedToSanity ? 'Shared with your care team' : isPending ? 'Saving...' : 'Saved on this device'}
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
             <button
               onClick={restartQuiz}
-              className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xl font-bold rounded-2xl shadow-lg transition-transform active:scale-95"
+              className="rounded-full bg-amber-400 px-8 py-4 text-xl font-semibold text-zinc-950 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              Play Again ↺
+              Play again
             </button>
             {onClose && (
               <button
                 onClick={onClose}
-                className="px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xl font-bold rounded-2xl border border-zinc-700 transition-colors"
+                className="rounded-full border border-white/20 px-8 py-4 text-xl font-medium text-zinc-200 transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
               >
-                Return to Dashboard
+                Back to chores
               </button>
             )}
           </div>
         </div>
       ) : (
-        /* ACTIVE QUESTION SCREEN */
-        <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-xl mx-auto w-full">
-          {/* Progress Indicator */}
-          <div className="w-full flex items-center justify-between text-sm font-semibold text-zinc-400 mb-4">
-            <span>Question {currentIndex + 1} of {totalRounds}</span>
-            <span className="text-amber-300">Take all the time you need</span>
+        /* QUESTION */
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center py-2">
+          <div className="mb-3 w-full">
+            <div className="mb-2 flex items-center justify-between text-base text-zinc-400">
+              <span>
+                Question {currentIndex + 1} of {totalRounds}
+              </span>
+              <span className="text-amber-300">Take all the time you need</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-amber-400 transition-all duration-500"
+                style={{ width: `${((currentIndex + (selectedChoice ? 1 : 0)) / totalRounds) * 100}%` }}
+              />
+            </div>
           </div>
 
-          {/* Photo Portrait Card */}
-          <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-3xl overflow-hidden border-4 border-zinc-700 shadow-2xl bg-zinc-800 mb-6">
+          <div className="relative mb-4 h-[min(18rem,30vh)] w-[min(18rem,30vh)] overflow-hidden rounded-[28px] border border-white/15 bg-zinc-800">
             <Image
               src={currentTarget.imageUrl}
               alt={currentTarget.alt}
@@ -267,28 +275,29 @@ export function CognitiveSpark({persons, patientId = 'robert', patientName = 'Ro
             />
           </div>
 
-          <p className="text-xl sm:text-2xl font-bold text-white mb-6 text-center">
-            Do you recognize this familiar face?
+          <p className={`${display.className} mb-4 text-center text-3xl text-white [word-spacing:0.12em]`}>
+            Do you recognize this face?
           </p>
 
-          {/* Large High-Contrast Choice Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
             {choices.map((choiceName) => {
               const isSelected = selectedChoice === choiceName
               const isTarget = choiceName === currentTarget.name
+              const answered = selectedChoice !== null
 
               return (
                 <button
                   key={choiceName}
                   onClick={() => handleSelectChoice(choiceName)}
-                  disabled={selectedChoice !== null}
-                  className={`w-full py-5 px-6 rounded-2xl text-2xl font-extrabold tracking-wide transition-all shadow-md active:scale-95 text-center ${
-                    isSelected
-                      ? isTarget
-                        ? 'bg-emerald-500 text-zinc-950 border-2 border-emerald-400 scale-[1.02]'
-                        : 'bg-amber-600 text-white border-2 border-amber-400'
-                      : 'bg-zinc-800 hover:bg-zinc-750 text-white border-2 border-zinc-700 hover:border-amber-400'
-                  }`}
+                  disabled={answered}
+                  className={`w-full rounded-full border-2 px-6 py-5 text-2xl font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${answered && isTarget
+                    ? 'border-emerald-400 bg-emerald-400 text-zinc-950'
+                    : isSelected
+                      ? 'border-amber-400 bg-amber-500/20 text-amber-100'
+                      : answered
+                        ? 'border-white/10 text-zinc-500'
+                        : 'border-white/20 bg-white/[0.04] text-white hover:border-amber-400'
+                    }`}
                 >
                   Is this {choiceName}?
                 </button>
@@ -296,29 +305,42 @@ export function CognitiveSpark({persons, patientId = 'robert', patientName = 'Ro
             })}
           </div>
 
-          {/* Immediate Warm, Reassuring Feedback Banner */}
           {feedback && (
             <div
-              className={`mt-6 w-full p-5 rounded-2xl border-2 text-center transition-all animate-fadeIn ${
-                feedback.isMatch
-                  ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200'
-                  : 'bg-amber-950/80 border-amber-500 text-amber-200'
-              }`}
+              className={`mt-6 w-full rounded-3xl border p-6 text-center ${feedback.isMatch
+                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-100'
+                : 'border-amber-500/40 bg-amber-950/40 text-amber-100'
+                }`}
             >
-              <div className="text-xl sm:text-2xl font-bold leading-snug">
-                {feedback.message}
-              </div>
-
+              <div className="text-2xl font-medium leading-snug">{feedback.message}</div>
               <button
                 onClick={handleNextRound}
-                className="mt-4 px-8 py-3 bg-zinc-100 hover:bg-white text-zinc-950 text-lg font-bold rounded-xl shadow-md transition-transform active:scale-95"
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-amber-400 px-8 py-3.5 text-xl font-semibold text-zinc-950 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
               >
-                {currentIndex + 1 >= totalRounds ? 'See Summary ➔' : 'Next Family Member ➔'}
+                {currentIndex + 1 >= totalRounds ? 'See summary' : 'Next family member'}
+                <Icon d="M5 12h14M12 5l7 7-7 7" className="h-5 w-5" />
               </button>
             </div>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+function Icon({ d, className }: { d: string; className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d={d} />
+    </svg>
   )
 }

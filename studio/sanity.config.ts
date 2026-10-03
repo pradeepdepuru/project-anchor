@@ -3,17 +3,17 @@
  * Learn more: https://www.sanity.io/docs/configuration
  */
 
-import {defineConfig, useCurrentUser} from 'sanity'
-import {structureTool} from 'sanity/structure'
-import {presentationTool} from 'sanity/presentation'
-import {visionTool} from '@sanity/vision'
-import {unsplashImageAsset} from 'sanity-plugin-asset-source-unsplash'
-import {assist} from '@sanity/assist'
-import type {DocumentActionComponent, DocumentActionProps} from 'sanity'
+import { defineConfig, useCurrentUser } from 'sanity'
+import { structureTool } from 'sanity/structure'
+import { presentationTool } from 'sanity/presentation'
+import { visionTool } from '@sanity/vision'
+import { unsplashImageAsset } from 'sanity-plugin-asset-source-unsplash'
+import { assist } from '@sanity/assist'
+import type { DocumentActionComponent, DocumentActionProps } from 'sanity'
 
-import {schemaTypes} from './src/schemaTypes'
-import {structure} from './src/structure'
-import {resolve} from './src/presentation'
+import { schemaTypes } from './src/schemaTypes'
+import { structure } from './src/structure'
+import { resolve } from './src/presentation'
 
 // Environment variables for project configuration
 const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 't3retdwe'
@@ -29,7 +29,7 @@ const SANITY_STUDIO_PREVIEW_URL =
 // verification note, then publishes the document.
 const verifyCompletion: DocumentActionComponent = (props: DocumentActionProps) => {
   const currentUser = useCurrentUser()
-  const {published, draft} = props
+  const { published, draft } = props
 
   // Work from the draft if present, otherwise the published snapshot
   const doc = (draft ?? published) as any
@@ -50,7 +50,7 @@ const verifyCompletion: DocumentActionComponent = (props: DocumentActionProps) =
     label: 'Verify Completion',
     tone: 'positive' as const,
     onHandle: async () => {
-      const {patch, publish} = props
+      const { patch, publish } = props
 
       const userName = currentUser?.name ?? 'Unknown user'
       const reportedRecord = completions[reportedIndex]
