@@ -6,7 +6,7 @@ Anchor shows a patient a calm bedside kiosk with their daily routine, familiar f
 
 | | |
 |---|---|
-| **Live app** | https://project-anchor-qlzdtx373-deep-f047.vercel.app/kiosk |
+| **Live app** | https://project-anchor-one.vercel.app/kiosk |
 | **Sanity Studio** | https://www.sanity.io/@oky0bdg3q/studio/osxe94h1xsq6ws70jhwlhigy/default |
 | **Sanity project** | `t3retdwe` (dataset `production`) |
 | **Repository** | https://github.com/pradeepdepuru/project-anchor |
