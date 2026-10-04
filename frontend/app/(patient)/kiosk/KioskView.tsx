@@ -13,6 +13,18 @@ import { urlForImage } from '@/sanity/lib/utils'
 import { CognitiveSpark } from './CognitiveSpark'
 import { Inter, Instrument_Serif } from 'next/font/google'
 
+// Chore times are stored as exact moments. Show them in the patient's own time zone, in a fixed
+// locale, so the server-rendered HTML and the browser agree and every viewer sees the same time.
+const PATIENT_TIME_ZONE = process.env.NEXT_PUBLIC_ANCHOR_TIMEZONE || 'America/Phoenix'
+
+function formatChoreTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: PATIENT_TIME_ZONE,
+  })
+}
+
 const display = Instrument_Serif({ subsets: ['latin'], weight: '400', style: ['normal', 'italic'] })
 const sans = Inter({ subsets: ['latin'] })
 
@@ -506,7 +518,7 @@ export function KioskView({
                   {activeChores.map((chore) => {
                     const isCompleted = completedChoreIds.has(chore._id)
                     const timeDisplay = chore.scheduledTime
-                      ? new Date(chore.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      ? formatChoreTime(chore.scheduledTime)
                       : chore.timeOfDay?.toUpperCase() || 'TODAY'
                     const requiresSupervision = chore.safetyParameters?.requiresSupervision
                     const priority = chore.safetyParameters?.priority ?? null
