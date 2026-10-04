@@ -156,7 +156,7 @@ In Studio, create patients and caregivers (link each caregiver to a patient), ad
 5. In Studio, set a visit to **Cancelled** and publish. Ask Anchor *"Who is visiting me today?"* again. The cancelled visitor should no longer be mentioned.
 6. Create a medication order that **supersedes** the current one, with different steps, and publish. Ask Anchor how to take the medication. It should read the new steps.
 
-Demo sign-in: `Emily Miller` with passcode `Test1234`.
+Demo sign-in (for alerts): `Emily Miller` with passcode `Test1234`.
 
 ## Deploying
 
