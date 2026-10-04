@@ -360,7 +360,7 @@ export function KioskView({
   return (
     <div
       data-kiosk-theme={resolvedTheme}
-      className={`${sans.className} fixed inset-0 z-40 flex flex-col overflow-hidden select-none ${rootTheme}`}
+      className={`${sans.className} fixed inset-0 z-40 flex flex-col overflow-y-auto lg:overflow-hidden select-none ${rootTheme}`}
     >
       {/* Ambient backdrop: soft amber glow + fine dot grid (matches the directory page) */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -454,7 +454,7 @@ export function KioskView({
           </button>
 
           <div className="text-right">
-            <div className={`${display.className} [word-spacing:0.12em] text-5xl tabular-nums leading-none text-white lg:text-6xl`}>
+            <div className={`${display.className} [word-spacing:0.12em] whitespace-nowrap text-4xl tabular-nums leading-none text-white sm:text-5xl lg:text-6xl`}>
               {currentTime
                 ? currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '10:00 AM'}
@@ -469,10 +469,10 @@ export function KioskView({
       </header>
 
       {/* 2. MAIN SPLIT INTERFACE */}
-      <main className="relative grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-hidden px-6 pb-6 lg:grid-cols-12 lg:px-12 lg:pb-10">
+      <main className="relative grid flex-none grid-cols-1 gap-6 px-6 pb-6 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:overflow-hidden lg:px-12 lg:pb-10">
         {/* LEFT: Chores or Cognitive Spark */}
         <section
-          className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/50 p-6 ${showChat ? 'lg:col-span-5' : 'lg:col-span-12'
+          className={`flex min-w-0 flex-col overflow-hidden rounded-[28px] lg:min-h-0 border border-white/10 bg-zinc-900/50 p-6 ${showChat ? 'lg:col-span-5' : 'lg:col-span-12'
             }`}
         >
           {isSparkOpen ? (
@@ -629,7 +629,7 @@ export function KioskView({
 
         {/* RIGHT: Companion chat */}
         {showChat && (
-          <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/50 p-6 lg:col-span-7">
+          <section className="flex min-w-0 flex-col overflow-hidden rounded-[28px] lg:min-h-0 border border-white/10 bg-zinc-900/50 p-6 lg:col-span-7">
             <div className="mb-5 flex items-center justify-between gap-4 border-b border-white/10 pb-5">
               <div className="flex items-center gap-4">
                 <MicButton isListening={isMicListening} onToggle={handleMicToggle} />
@@ -686,7 +686,7 @@ export function KioskView({
             </div>
 
             {/* Messages */}
-            <div className="mb-5 flex-1 space-y-5 overflow-y-auto pr-2">
+            <div className="mb-5 max-h-[45vh] min-h-[14rem] flex-1 space-y-5 overflow-y-auto pr-2 lg:max-h-none lg:min-h-0">
               {messages.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center p-8 text-center">
                   <Icon d="M12 8a3 3 0 100-6 3 3 0 000 6zM12 8v14M5 12H2a10 10 0 0020 0h-3M8 12h8" className="mb-4 h-12 w-12 text-amber-300/80" strokeWidth={1.5} />
@@ -709,7 +709,7 @@ export function KioskView({
                         {isUser ? patientDisplayName || 'You' : 'Anchor'}
                       </span>
                       <div
-                        className={`max-w-[85%] rounded-3xl px-6 py-4 text-2xl leading-relaxed ${isUser
+                        className={`max-w-[85%] rounded-3xl px-6 py-4 text-xl leading-relaxed lg:text-2xl ${isUser
                           ? 'rounded-br-md bg-amber-500 text-zinc-950'
                           : 'rounded-bl-md border border-white/10 bg-zinc-800/80 text-zinc-100'
                           }`}
@@ -741,12 +741,12 @@ export function KioskView({
                 onChange={(e) => setInputVal(e.target.value)}
                 placeholder="Ask Anchor anything..."
                 disabled={isStreaming}
-                className="min-w-0 flex-1 rounded-full border border-white/15 bg-zinc-800/40 px-7 py-4 text-2xl text-white outline-none transition-colors placeholder:text-zinc-500 focus:border-amber-400"
+                className="min-w-0 flex-1 rounded-full border border-white/15 bg-zinc-800/40 px-5 py-3 text-lg text-white lg:px-7 lg:py-4 lg:text-2xl outline-none transition-colors placeholder:text-zinc-500 focus:border-amber-400"
               />
               <button
                 type="submit"
                 disabled={!inputVal.trim() || isStreaming}
-                className="flex items-center gap-2 rounded-full bg-amber-400 px-8 py-4 text-2xl font-semibold text-zinc-950 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:pointer-events-none disabled:opacity-40"
+                className="flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-lg font-semibold lg:px-8 lg:py-4 lg:text-2xl text-zinc-950 transition-colors hover:bg-amber-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:pointer-events-none disabled:opacity-40"
               >
                 Send
                 <Icon d="M5 12h14M12 5l7 7-7 7" className="h-6 w-6" />
