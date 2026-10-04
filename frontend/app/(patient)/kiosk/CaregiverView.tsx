@@ -149,6 +149,17 @@ export async function CaregiverView({ person }: CaregiverViewProps) {
             </div>
           )}
         </section>
+        <Link
+          href="/caregiver/alerts"
+          className="mt-6 flex items-center justify-between rounded-[28px] border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-amber-400/60"
+        >
+          <div>
+            <div className="text-sm text-zinc-400">Care team tools</div>
+            <div className="mt-1 text-xl font-medium text-white">Pending alerts</div>
+            <p className="mt-1 text-base text-zinc-400">Review what Anchor raised, then approve it or send it back.</p>
+          </div>
+          <span aria-hidden>→</span>
+        </Link>
 
         {/* Memory anchors */}
         {person.coreMemories && person.coreMemories.length > 0 && (

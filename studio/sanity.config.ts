@@ -97,11 +97,14 @@ export default defineConfig({
     types: schemaTypes,
   },
   document: {
+    // Kiosk Settings is a single document: no new copies, no delete/duplicate/unpublish
+    newDocumentOptions: (prev, { creationContext }) =>
+      creationContext.type === 'global' ? prev.filter((t) => t.templateId !== 'kioskSettings') : prev,
     actions: (prev, context) => {
-      // Append verifyCompletion only for dailyChore documents
-      if (context.schemaType === 'dailyChore') {
-        return [...prev, verifyCompletion]
+      if (context.schemaType === 'kioskSettings') {
+        return prev.filter((a) => !['unpublish', 'delete', 'duplicate'].includes(a.action ?? ''))
       }
+      if (context.schemaType === 'dailyChore') return [...prev, verifyCompletion]
       return prev
     },
   },

@@ -88,6 +88,9 @@ export const careAlert = defineType({
       type: 'text',
       rows: 2,
     }),
+    defineField({name: 'workflowInstanceId', title: 'Workflow instance', type: 'string', readOnly: true}),
+    defineField({name: 'agentBriefing', title: 'Anchor briefing', type: 'text', rows: 3, readOnly: true}),
+    defineField({name: 'suggestedResponse', title: 'Suggested response', type: 'text', rows: 3, readOnly: true}),
   ],
   orderings: [
     {title: 'Newest first', name: 'raisedDesc', by: [{field: 'raisedAt', direction: 'desc'}]},

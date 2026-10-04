@@ -1,108 +1,176 @@
-# Clean Next.js + Sanity app
+# Project Anchor
 
-This template includes a [Next.js](https://nextjs.org/) app with a [Sanity Studio](https://www.sanity.io/) – an open-source React application that connects to your Sanity project’s hosted dataset. The Studio is configured locally and can then be deployed for content collaboration.
+An ambient care companion for people living with dementia, built on Sanity.
 
-![Screenshot of Sanity Studio using Presentation Tool to do Visual Editing](/sanity-next-preview.png)
+Anchor shows a patient a calm bedside kiosk with their daily routine, familiar faces and a gentle AI companion. When the companion senses distress or an emergency, it raises an alert. A **workflow stored next to the content** drafts a briefing, and a family caregiver reviews it, approves it or sends it back.
 
-## Features
+| | |
+|---|---|
+| **Live app** | https://project-anchor-qlzdtx373-deep-f047.vercel.app/kiosk |
+| **Sanity Studio** | https://www.sanity.io/@oky0bdg3q/studio/osxe94h1xsq6ws70jhwlhigy/default |
+| **Sanity project** | `t3retdwe` (dataset `production`) |
+| **Repository** | https://github.com/pradeepdepuru/project-anchor |
 
-- **Next.js 16 for Performance:** Leverage the power of Next.js 16 App Router for blazing-fast performance and SEO-friendly static sites.
-- **Real-time Visual Editing:** Edit content live with Sanity's [Presentation Tool](https://www.sanity.io/docs/presentation) and see updates in real time.
-- **Live Content:** The [Live Content API](https://www.sanity.io/live) allows you to deliver live, dynamic experiences to your users without the complexity and scalability challenges that typically come with building real-time functionality.
-- **Customizable Pages with Drag-and-Drop:** Create and manage pages using a page builder with dynamic components and [Drag-and-Drop Visual Editing](https://www.sanity.io/visual-editing-for-structured-content).
-- **Powerful Content Management:** Collaborate with team members in real-time, with fine-grained revision history.
-- **AI-powered Media Support:** Auto-generate alt text with [Sanity AI Assist](https://www.sanity.io/ai-assist).
-- **On-demand Publishing:** No waiting for rebuilds—new content is live instantly with Incremental Static Revalidation.
-- **Easy Media Management:** [Integrated Unsplash support](https://www.sanity.io/plugins/sanity-plugin-asset-source-unsplash) for seamless media handling.
+> All patients, families and stories in this project are fictional demo data. Anchor is not a medical device and never diagnoses or gives medical advice.
 
-## Demo
+## What it does
 
-https://template-nextjs-clean.sanity.dev
+- **Patient kiosk** (`/kiosk/<patient>`): a greeting, today's chores shown as numbered steps with safety notes, the Anchor companion (text and optional voice), and *Memory spark*, a gentle face-and-name game that logs each session.
+- **Care directory** (`/kiosk`): live counts and a card for every patient, family member and caregiver.
+- **Caregiver profiles**: who they are, which patient they support, and the memory stories Anchor uses to ground and reassure.
+- **Caregiver alerts** (`/caregiver/alerts`): signed-in caregivers see alerts Anchor raised, with Anchor's briefing and a suggested response. They take an alert, then approve it or send it back with a reason.
+- **Studio-controlled UI**: the Kiosk Settings document switches the whole kiosk between dark, light and high-contrast themes, toggles the chat companion and sets a custom welcome line, with no code change.
 
-## Getting Started
+## How it uses Sanity
 
-### Installing the template
+1. **A structured content graph.** Patients, caregivers, chores, medication orders, visits, alerts and memory stories are separate documents linked by references (see the content model below). Anchor answers by traversing those links, not by searching text.
+2. **Content that carries meaning, not just text.** A `visit` links a patient to a visitor and can be *cancelled*. A `medicationOrder` can *supersede* an older order, so the current order is the one no newer effective order replaces. Chores carry safety parameters (priority, assistance level, supervision, precautions). These are relationships and states an agent can reason over, and a keyword search cannot.
+3. **An agent grounded through the Sanity Context MCP.** Anchor queries the dataset with `groq_query` through the Context MCP. A question like *"Who is visiting me today, and how do I know them?"* joins visits, people and memories. Each turn is logged to **Anchor Log** with the question, the answer, the GROQ queries run and the documents read.
+4. **A process modeled as data.** The `alert-response` workflow (Sanity Workflows) moves each alert through `raised → review → resolved`, with a rejection loop back to Anchor. The agent and the caregiver trigger the same transitions, and the stage history is stored with the content.
+5. **Live content.** Pages update when content is published, using `next-sanity` live (`<SanityLive />`).
+6. **Studio as the control panel.** A settings document that drives the UI, a curated desk structure, a custom *Verify Completion* document action on chores (a caregiver confirms a completion the patient reported), read-only agent fields on alerts, and typed queries (`sanity typegen`).
 
-> **Already deployed with Vercel?** If you've already deployed using the **Sanity + Vercel Integration** or **one-click Vercel button**, please visit our [Vercel deployment instructions](vercel-installation-instructions.md) to set up your local environment and deploy Sanity Studio.
+## Content model
 
-#### 1. Initialize template with Sanity CLI
+| Document | Purpose | Key fields |
+|---|---|---|
+| `person` | Patients, family and caregivers | `isPatient`, `relationship`, `patient` (reference), `phoneNumber`, `picture`, `coreMemories[]` (title, story, era), `slug` (patients) |
+| `dailyChore` | A patient's task | `patient`, `scheduledTime`, `timeOfDay`, `instructions`, `safetyParameters` (supervision, assistance level, priority, notes), `completions[]` |
+| `medicationOrder` | Prescription instructions with versioning | `patient`, `name`, `dosage`, `steps[]`, `effectiveFrom`, `supersedes` (reference to the older order), `changeNote` |
+| `visit` | Who is coming and when | `patient`, `visitor`, `start`, `end`, `purpose`, `status` (scheduled or cancelled) |
+| `careAlert` | An alert that needs a human | `patient`, `type`, `description`, `status`, `raisedAt`, `source`, `acknowledgedBy`, `workflowInstanceId`, `agentBriefing`, `suggestedResponse` |
+| `anchorLog` | One record per companion turn | `patient`, `askedAt`, `question`, `answer`, `queries[]`, `sourceIds[]`, `safeMode`, `alertRaised` |
+| `cognitiveLog` | Memory-game sessions | `patient`, `quizDate`, `gameType`, `score`, `accuracyRate`, `patientResponseState`, `caregiverNotes` |
+| `kioskSettings` | Controls the kiosk | `showChatCompanion`, `kioskTheme`, `customWelcomeText` |
 
-Run the command in your Terminal to initialize this template on your local computer.
+## How Anchor works
 
-```shell
-npm create sanity@latest -- --template sanity-io/sanity-template-nextjs-clean
+The agent endpoint is `frontend/app/api/agent/route.ts`.
+
+- The browser sends only `{ patientId, messages, timeZone }`. The server resolves the patient's name, caregiver, clock and records from Sanity, so the client cannot inject facts or system messages.
+- It connects to the Sanity Context MCP and gives the model the `groq_query` tool plus an `alert_caregiver` tool. If the MCP is unreachable, Anchor falls into **safe mode**: it may comfort the patient but must not state facts about them.
+- `alert_caregiver` creates a `careAlert` (`medical_emergency`, `safety_hazard` or `distress`). The patient comes from the server, so the model cannot raise an alert for someone else. Duplicate alerts of the same type within 10 minutes are ignored.
+- After the reply, a new alert starts an `alert-response` workflow instance. Anchor drafts a briefing and a suggested response from the conversation and the patient's memory anchors, then submits it, which moves the instance to caregiver review.
+- Sending an alert back fires `reject` with the caregiver's reason, and Anchor redrafts the briefing with a 15 second limit, falling back to the previous draft plus the feedback.
+
+## The alert-response workflow
+
+Defined in `studio/workflows/alert-response.ts` and deployed with `studio/sanity.workflow.ts`.
+
+```
+raised --(Anchor submits briefing)--> review --(caregiver approves)--> resolved
+  ^                                      |
+  +--------(caregiver sends back)--------+
 ```
 
-See the documentation if you are [having issues with the CLI](https://www.sanity.io/help/cli-errors).
+Caregivers act from `/caregiver/alerts`. The caregiver's name travels as an action parameter, and the full history of an instance can be inspected with `sanity-workflows show <instance-id>`.
 
-#### 2. Run Studio and Next.js app locally
+## Repository layout
 
-Navigate to the template directory using `cd <your app name>`, and start the development servers by running the following command
-
-```shell
-npm run dev
+```
+frontend/   Next.js app (App Router, Tailwind CSS)
+  app/(patient)/kiosk/       directory, patient kiosk, caregiver profile, Memory spark
+  app/caregiver/alerts/      caregiver sign-in and pending alerts
+  app/api/agent/             Anchor agent endpoint
+  app/api/alerts/[id]/       claim / approve / send back
+  app/api/chores/complete/   chore completion
+  sanity/lib/                clients, queries, workflow engine helper, agent prompt
+studio/     Sanity Studio
+  src/schemaTypes/           document, object and singleton schemas
+  src/structure/             desk structure
+  src/presentation/          Presentation tool resolvers
+  workflows/                 alert-response workflow definition
+  sanity.workflow.ts         workflow deployment config
+sanity.schema.json           extracted schema, read by `sanity typegen`
 ```
 
-#### 3. Open the app and sign in to the Studio
+The `page` and `post` documents and the `/[slug]` and `/posts/[slug]` routes come from the Sanity Next.js starter template and are not part of the care experience.
 
-Open the Next.js app running locally in your browser on [http://localhost:3000](http://localhost:3000).
+## Local setup
 
-Open the Studio running locally in your browser on [http://localhost:3333](http://localhost:3333). You should now see a screen prompting you to log in to the Studio. Use the same service (Google, GitHub, or email) that you used when you logged in to the CLI.
+**Prerequisites:** Node.js 20.12 or newer (22 LTS recommended), npm, a Sanity account, an OpenRouter API key.
 
-### Adding content with Sanity
-
-#### 1. Publish your first document
-
-The template comes pre-defined with a schema containing `Page`, `Post`, `Person`, and `Settings` document types.
-
-From the Studio, click "+ Create" and select the `Post` document type. Go ahead and create and publish the document.
-
-Your content should now appear in your Next.js app ([http://localhost:3000](http://localhost:3000)) as well as in the Studio on the "Presentation" Tab
-
-#### 2. Import Sample Data (optional)
-
-You may want to start with some sample content and we've got you covered. Run this command from the root of your project to import the provided dataset (sample-data.tar.gz) into your Sanity project. This step is optional but can be helpful for getting started quickly.
-
-```shell
-npm run import-sample-data
+```bash
+git clone https://github.com/pradeepdepuru/project-anchor.git
+cd project-anchor
+npm install        # installs both workspaces; .npmrc sets legacy-peer-deps (see Known limitations)
 ```
 
-#### 3. Extending the Sanity schema
+### 1. Frontend environment
 
-The schema for the `Post` document type is defined in the `studio/src/schemaTypes/post.ts` file. You can [add more document types](https://www.sanity.io/docs/studio/schema-types) to the schema to suit your needs.
+Create `frontend/.env.local`. Never commit this file.
 
-### Deploying your application and inviting editors
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | Sanity project ID (`t3retdwe`) |
+| `NEXT_PUBLIC_SANITY_DATASET` | Dataset (`production`) |
+| `NEXT_PUBLIC_SANITY_API_VERSION` | Sanity API version |
+| `NEXT_PUBLIC_SANITY_STUDIO_URL` | Studio URL used by "Open Studio" links |
+| `SANITY_API_READ_TOKEN` | Viewer token for reads |
+| `SANITY_API_WRITE_TOKEN` | Editor token for alerts, logs and workflow instances |
+| `SANITY_CONTEXT_MCP_URL` | Your project's Sanity Context MCP endpoint |
+| `OPENROUTER_API_KEY` | Model access for Anchor |
+| `OPENROUTER_MODEL` | Model ID to use on OpenRouter |
+| `CAREGIVER_PASSCODE` | Shared passcode for the caregiver alerts page |
+| `ANCHOR_TIMEZONE` | Optional fallback time zone for Anchor |
 
-#### 1. Deploy Sanity Studio
+### 2. Studio environment (optional)
 
-Your Next.js frontend (`/frontend`) and Sanity Studio (`/studio`) are still only running on your local computer. It's time to deploy and get it into the hands of other content editors.
+The Studio works without any environment file, using these defaults. Override them in `studio/.env` if needed.
 
-Back in your Studio directory (`/studio`), run the following command to deploy your Sanity Studio.
+| Variable | Default |
+|---|---|
+| `SANITY_STUDIO_PROJECT_ID` | `t3retdwe` |
+| `SANITY_STUDIO_DATASET` | `production` |
+| `SANITY_STUDIO_PREVIEW_URL` | `http://localhost:3000/kiosk` |
+| `SANITY_STUDIO_TITLE` | `Project Anchor Studio` |
 
-```shell
-npx sanity deploy
+### 3. Run
+
+```bash
+npm run dev        # from the repo root: starts the frontend (3000) and Studio (3333) with Turborepo
 ```
 
-#### 2. Deploy Next.js app to Vercel
+Or run them separately: `npm run dev:next` and `npm run dev:studio`. Before each start, both regenerate the schema and Sanity types. `npm run build` in `frontend/` also runs `sanity typegen generate` first.
 
-You have the freedom to deploy your Next.js app to your hosting provider of choice. With Vercel and GitHub being a popular choice, we'll cover the basics of that approach.
+To publish Studio changes to the hosted Studio: `cd studio && npm run deploy`.
 
-1. Create a GitHub repository from this project. [Learn more](https://docs.github.com/en/migrations/importing-source-code/using-the-command-line-to-import-source-code/adding-locally-hosted-code-to-github).
-2. Create a new Vercel project and connect it to your Github repository.
-3. Set the `Root Directory` to your Next.js app.
-4. Configure your Environment Variables.
+### 4. Workflow
 
-#### 3. Invite a collaborator
+```bash
+cd studio
+npx sanity-workflows deploy --check    # validate only, no dataset access
+npx sanity-workflows deploy            # publish the definition
+```
 
-Now that you’ve deployed your Next.js application and Sanity Studio, you can optionally invite a collaborator to your Studio. Open up [Manage](https://www.sanity.io/manage), select your project and click "Invite project members"
+### 5. Content
 
-They will be able to access the deployed Studio, where you can collaborate together on creating content.
+In Studio, create patients and caregivers (link each caregiver to a patient), add chores, memory stories, visits and medication orders, and set Kiosk Settings. Publish documents so the frontend can read them.
 
-## Resources
+## Try it
 
-- [Sanity documentation](https://www.sanity.io/docs)
-- [Next.js documentation](https://nextjs.org/docs)
-- [Join the Sanity Community](https://slack.sanity.io)
-- [Learn Sanity](https://www.sanity.io/learn)
+1. Open `/kiosk` and choose a patient. Ask Anchor *"Who is visiting me today?"*
+2. Say *"I feel dizzy and my chest hurts."* Anchor replies calmly and raises a medical-emergency alert.
+3. Open `/caregiver/alerts`, sign in with the demo passcode, and take the alert. Read Anchor's briefing, then send it back with a reason or approve it.
+4. In Studio, open **Kiosk Settings**, change the theme to Light, click **Publish**, and refresh the kiosk.
+5. In Studio, set a visit to **Cancelled** and publish. Ask Anchor *"Who is visiting me today?"* again. The cancelled visitor should no longer be mentioned.
+6. Create a medication order that **supersedes** the current one, with different steps, and publish. Ask Anchor how to take the medication. It should read the new steps.
 
-[vercel-deploy]: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsanity-io%2Fsanity-template-nextjs-clean&project-name=nextjs-clean-website-sanity-template&repository-name=nextjs-clean-website-sanity-template&demo-title=Clean%20Next.js%20%2B%20Sanity%20app&demo-description=A%20clean%20Next.js%20plus%20Sanity%20starter%20with%20real-time%20visual%20editing%2C%20drag-and-drop%20page%20builder%2C%20AI%20media%20support%2C%20and%20live%20content%20updates.&demo-url=https%3A%2F%2Ftemplate-nextjs-clean.sanity.build%2F&demo-image=https%3A%2F%2Fraw.githubusercontent.com%2Fsanity-io%2Fsanity-template-nextjs-clean%2Frefs%2Fheads%2Fmain%2Fsanity-next-preview.png&products=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22sanity%22%2C%22productSlug%22%3A%22project%22%2C%22protocol%22%3A%22other%22%7D%5D&root-directory=frontend
+Demo sign-in: `Emily Miller` with passcode `Test1234`.
+
+## Deploying
+
+The frontend is deployed on Vercel from this repository; pushes to `main` deploy automatically. Set the same environment variables in Vercel, and add the deployment domain to the project's CORS origins in Sanity (API settings) so live updates work. When deploying the Studio, set `SANITY_STUDIO_PREVIEW_URL` to the live app (for example `https://<YOUR-VERCEL-URL>/kiosk`) so the Presentation tool does not point at localhost.
+
+## Known limitations
+
+- **Workflows is a prerelease.** Expect API changes. The definition is at version 2.
+- **Caregiver sign-in is demo-grade:** a shared family passcode plus a chosen name, not production authentication.
+- **Review UI is custom.** The Sanity Workflows Studio plugin needs a newer Studio than this project uses, so approvals happen on `/caregiver/alerts`.
+- **Peer dependencies.** The workflow packages declare an optional TypeScript peer that conflicts with this project's version, so installs use `legacy-peer-deps`. The workflow CLI's inspection commands (`show`, `fire-action`) also need a newer `@sanity/cli-core` than Studio, so install the CLI in a separate folder if you want them.
+- **The alerts page** uses its own fixed dark palette and does not follow the Kiosk Settings theme.
+- **Not built yet:** an App SDK dashboard, a "release this alert" transition, and a resolved-alerts history view.
+
+## Tech stack
+
+Next.js 16 (App Router), React 19, Tailwind CSS 4, Sanity Studio 5 and Content Lake, Sanity Context MCP, Sanity Workflows, `next-sanity` live content, Vercel AI SDK with OpenRouter, Turborepo, deployed on Vercel.

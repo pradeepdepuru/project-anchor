@@ -114,6 +114,12 @@ export default async function KioskIndexPage() {
               <a href="#family" className="hidden rounded-full px-4 py-2 transition-colors hover:bg-white/10 hover:text-white sm:inline-block">
                 Family &amp; caregivers
               </a>
+              <Link
+                href="/caregiver/alerts"
+                className="rounded-full px-4 py-2 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                Caregiver alerts
+              </Link>
               <a
                 href={STUDIO_URL}
                 target="_blank"

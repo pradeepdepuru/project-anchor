@@ -148,8 +148,9 @@ function makeAlertTool(patientId: string, onRaised?: (a: RaisedAlert) => void) {
 
   return tool({
     description:
-      'Immediately notify the care team. Use for chest pain or pressure, dizziness, a fall, trouble breathing, leaving the house alone, stove or fire hazards, or intense distress. Never diagnose or treat.',
-    parameters: alertSchema,
+      'Immediately notify the care team. Use for chest pain or pressure, dizziness, a fall, trouble breathing, leaving the house alone, stove or fire hazards, or any expressed fear, panic, or wish to leave or go home. Never diagnose or treat.',
+    inputSchema: alertSchema, // AI SDK v5+
+    parameters: alertSchema, // older AI SDK versions
     execute: async (args: any) => {
       console.log('alert_caregiver raw args:', JSON.stringify(args))
 
@@ -242,11 +243,19 @@ async function runAlertWorkflow(opts: {
       try {
         const { text } = await generateText({
           model: openrouter(modelId),
+          maxRetries: 0,
+          abortSignal: AbortSignal.timeout(20000),
           system:
             'You write short briefings for a family caregiver after a care companion raised an alert. ' +
             'Use ONLY the conversation and memory anchors provided. Never invent facts, never give medical advice or diagnoses. ' +
             'If no memory anchor fits, say so in suggestedResponse. ' +
-            'Reply with JSON only: {"briefing": string, "suggestedResponse": string}. Each value is at most 3 sentences.',
+            'Reply with JSON only: {"briefing": string, "suggestedResponse": string}. Each value is at most 3 sentences. ' +
+            'Treat memory anchors as things to talk about, never as facts about who or what is physically present now. Avoid clinical labels.' +
+            'suggestedResponse is guidance addressed to the caregiver, not a script for the patient. ' +
+            'For a distress alert, an anchor about something the person generally finds comforting (a phrase, a topic, a past activity) fits; skip only anchors tied to a specific time or situation, such as bedtime, that does not match. ' +
+            'For a medical_emergency or safety_hazard alert, the first thing suggestedResponse says must be to check on the patient and make sure emergency help or the care team has been called. Never advise steering the patient away from symptoms they report. A comfort anchor may follow only as a secondary step, or be left out. ' +
+            'For medical_emergency alerts, suggestedResponse must only tell the caregiver to check on the patient and make sure emergency help is called. Do not suggest conversation topics or memories. ' +
+            'Refer to anchors as topics to bring up, never as facts about the present, and never say that anyone or anything is coming or on the way.',
           prompt:
             `Alert type: ${alert.alertType}
 Anchor's note: ${alert.description}
@@ -256,9 +265,9 @@ Anchor's note: ${alert.description}
 ${transcript}
 
 Memory anchors:
-${anchors.join('') || '(none)'}`,
+${anchors.join('\n') || '(none)'}`,
         })
-        const parsed = JSON.parse(text.replace(/```json| ```/g, '').trim())
+        const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
         if (typeof parsed.briefing === 'string' && parsed.briefing.trim()) briefing = parsed.briefing.slice(0, 600)
         if (typeof parsed.suggestedResponse === 'string' && parsed.suggestedResponse.trim())
           suggestedResponse = parsed.suggestedResponse.slice(0, 600)
@@ -299,11 +308,11 @@ export async function POST(req: Request) {
       firstName: string
       caregiverName?: string | null
     } | null>(
-      `* [_type == "person" && _id == $id && isPatient == true][0]{
-          _id,
-          firstName,
-          "caregiverName": * [_type == "person" && isPatient != true && patient._ref == ^._id][0].firstName
-        }`,
+      `*[_type == "person" && _id == $id && isPatient == true][0]{
+        _id,
+        firstName,
+        "caregiverName": *[_type == "person" && isPatient != true && patient._ref == ^._id][0].firstName
+      }`,
       { id: patientId },
     )
     if (!patient) {
@@ -380,8 +389,9 @@ export async function POST(req: Request) {
 
           for (const step of event.steps ?? []) {
             for (const call of (step.toolCalls ?? []) as any[]) {
-              if (call.toolName === 'groq_query' && typeof call.args?.query === 'string') {
-                queries.push(call.args.query)
+              const callQuery = (call.input ?? call.args)?.query
+              if (call.toolName === 'groq_query' && typeof callQuery === 'string') {
+                queries.push(callQuery)
               }
               if (call.toolName === 'alert_caregiver') {
                 alertRaised = true
@@ -390,7 +400,7 @@ export async function POST(req: Request) {
             // Harvest _id strings from groq_query tool results
             for (const result of (step.toolResults ?? []) as any[]) {
               if (result.toolName !== 'groq_query') continue
-              const resultData = result.result
+              const resultData = result.output ?? result.result
               const items: unknown[] = Array.isArray(resultData)
                 ? resultData
                 : Array.isArray(resultData?.result)

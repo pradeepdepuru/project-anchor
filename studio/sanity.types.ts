@@ -164,6 +164,9 @@ export type CareAlert = {
   source?: 'anchor' | 'kiosk' | 'caregiver'
   acknowledgedBy?: PersonReference
   resolutionNote?: string
+  workflowInstanceId?: string
+  agentBriefing?: string
+  suggestedResponse?: string
 }
 
 export type MedicationOrderReference = {
