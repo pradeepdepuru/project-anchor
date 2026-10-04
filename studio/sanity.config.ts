@@ -29,7 +29,7 @@ const SANITY_STUDIO_PREVIEW_URL =
 // verification note, then publishes the document.
 const verifyCompletion: DocumentActionComponent = (props: DocumentActionProps) => {
   const currentUser = useCurrentUser()
-  const { published, draft } = props
+  const { published, draft, patch, publish } = props
 
   // Work from the draft if present, otherwise the published snapshot
   const doc = (draft ?? published) as any
@@ -50,14 +50,12 @@ const verifyCompletion: DocumentActionComponent = (props: DocumentActionProps) =
     label: 'Verify Completion',
     tone: 'positive' as const,
     onHandle: async () => {
-      const { patch, publish } = props
-
       const userName = currentUser?.name ?? 'Unknown user'
       const reportedRecord = completions[reportedIndex]
       const existingNotes: string = reportedRecord?.notes ?? ''
       const verificationNote = ` · Verified in Studio by ${userName}`
 
-      patch([
+      patch!([
         {
           set: {
             [`completions[${reportedIndex}].status`]: 'completed',
@@ -66,7 +64,7 @@ const verifyCompletion: DocumentActionComponent = (props: DocumentActionProps) =
         },
       ])
 
-      publish()
+      publish!()
     },
   }
 }

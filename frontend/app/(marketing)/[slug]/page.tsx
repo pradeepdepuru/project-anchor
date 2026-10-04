@@ -12,13 +12,17 @@ import {PageOnboarding} from '@/app/components/Onboarding'
  * Learn more: https://nextjs.org/docs/app/api-reference/functions/generate-static-params
  */
 export async function generateStaticParams() {
-  const {data} = await sanityFetch({
-    query: pagesSlugs,
-    // // Use the published perspective in generateStaticParams
-    perspective: 'published',
-    stega: false,
-  })
-  return data
+  try {
+    const {data} = await sanityFetch({
+      query: pagesSlugs,
+      // Use the published perspective in generateStaticParams
+      perspective: 'published',
+      stega: false,
+    })
+    return data
+  } catch {
+    return []
+  }
 }
 
 /**
